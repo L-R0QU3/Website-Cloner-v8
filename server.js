@@ -7,18 +7,39 @@ const { createJob, crawlSite, log } = require('./crawler');
 const { buildAiPrompt } = require('./report');
 const { extractSinglePageInline } = require('./singlepage');
 
+// --- PASO 2a: Importar las reglas de seguridad ---
+const { basicAuth, assertPublicUrl } = require('./security');
+
 const app = express();
+
+// --- PASO 2b: Configurar el health check y la contraseña ---
+// Health check para Render (debe ir ANTES de la contraseña)
+app.get('/healthz', (req, res) => res.send('ok'));
+
+// Pide usuario y contraseña a toda la app
+app.use(basicAuth);
+// -----------------------------------------------------------
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 const jobs = new Map();
 
-app.post('/api/clone', (req, res) => {
+// --- PASO 2c: Convertir a async y agregar validación de URL pública ---
+app.post('/api/clone', async (req, res) => {
   const { url, maxPages, maxDepth, captureScreenshots, respectRobots, politeDelayMs } = req.body;
 
   if (!url || !/^https?:\/\//i.test(url)) {
     return res.status(400).json({ error: 'Debes indicar una URL válida que empiece con http:// o https://' });
   }
+
+  // --- Validación anti-hackers ---
+  try {
+    await assertPublicUrl(url);
+  } catch (e) {
+    return res.status(400).json({ error: e.message });
+  }
+  // -------------------------------
 
   const jobId = uuidv4();
   const job = createJob();
@@ -139,6 +160,15 @@ app.post('/api/single-page', async (req, res) => {
   if (!url || !/^https?:\/\//i.test(url)) {
     return res.status(400).json({ error: 'Debes indicar una URL válida que empiece con http:// o https://' });
   }
+
+  // --- PASO 2c: Validación anti-hackers también aquí ---
+  try {
+    await assertPublicUrl(url);
+  } catch (e) {
+    return res.status(400).json({ error: e.message });
+  }
+  // ------------------------------------------------------
+
   try {
     const html = await extractSinglePageInline(url);
     res.setHeader('Content-Disposition', 'attachment; filename="pagina-completa.html"');
