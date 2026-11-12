@@ -66,8 +66,6 @@ app.post('/api/clone', (req, res) => {
 app.get('/api/status/:jobId', (req, res) => {
   const job = jobs.get(req.params.jobId);
   
-  // Si el servidor se reinició (Render Sleep), la tarea se pierde.
-  // Devolvemos un JSON válido en lugar de un 404 para que el frontend no se rompa.
   if (!job) {
     return res.json({ 
       status: 'error', 
@@ -158,6 +156,8 @@ app.post('/api/single-page', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Website Cloner corriendo en http://localhost:${PORT}`);
+
+// SE HA CAMBIADO 'localhost' POR '0.0.0.0' AQUÍ PARA QUE RENDER PUEDA ACCEDER
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Website Cloner corriendo en http://0.0.0.0:${PORT}`);
 });
