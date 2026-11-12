@@ -2,11 +2,8 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const puppeteer = require('puppeteer');
 const { URL } = require('url');
-<<<<<<< HEAD
-const { autoScroll, fixElementorStretchedSections, fixJsComputedFullWidthElements, triggerCarousels, clickThroughCarousels, resetCarouselWidgets, detectPageTech, rebuildKnownCarousels, SIMPLE_CAROUSEL_CSS, SIMPLE_CAROUSEL_JS } = require('./crawler');
-=======
+
 const { autoScroll, fixElementorStretchedSections, fixJsComputedFullWidthElements, triggerCarousels, clickThroughCarousels, prepareLayerSlider, resetCarouselWidgets, detectPageTech, rebuildKnownCarousels, extractLayerSliderFromServerHtml, SIMPLE_CAROUSEL_CSS, SIMPLE_CAROUSEL_JS } = require('./crawler');
->>>>>>> 127069db377c0b66916fba3188d45060eef2f870
 
 const MIME_BY_EXT = {
   '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif',
@@ -94,8 +91,6 @@ async function inlineEmbeddedAssetUrls(html, onLog) {
 }
 
 // Descarga la página con Puppeteer (para incluir contenido generado por JS) y devuelve
-// un único HTML con todo el CSS, JS e imágenes incrustados como texto/base64.
-// Descarga la página con Puppeteer (para incluir contenido generado por JS) y devuelve
 // un único HTML con todo el CSS, JS e imágenes incrustados como texto/base64. Detecta por
 // su cuenta la tecnología de la página (WordPress, Elementor, Slider Revolution, Swiper,
 // etc.) para aplicar automáticamente las correcciones que necesite, sin que el usuario
@@ -109,8 +104,6 @@ async function extractSinglePageInline(pageUrl, onLog) {
     const viewportWidth = 1440;
     await page.setViewport({ width: viewportWidth, height: 900 });
     await page.setUserAgent('Mozilla/5.0 (WebsiteCloner)');
-<<<<<<< HEAD
-=======
 
     // Captura el HTML crudo del documento (sin JS) para extraer el contenido real de LayerSlider.
     let rawDocumentHtml = null;
@@ -123,7 +116,6 @@ async function extractSinglePageInline(pageUrl, onLog) {
       } catch { /* se ignora */ }
     });
 
->>>>>>> 127069db377c0b66916fba3188d45060eef2f870
     await page.goto(pageUrl, { waitUntil: 'networkidle2', timeout: 30000 });
 
     let detected = { isWordPress: false, isElementor: false, pageBuilder: null, sliders: [], needsExtendedFixes: false };
@@ -160,8 +152,6 @@ async function extractSinglePageInline(pageUrl, onLog) {
         } catch (e) {
           log(`Aviso: no se pudo recorrer carruseles genéricos: ${e.message}`);
         }
-<<<<<<< HEAD
-=======
         try {
           const ls = await prepareLayerSlider(page);
           if (ls.navClicks > 0 || ls.fixedImages > 0) {
@@ -172,7 +162,6 @@ async function extractSinglePageInline(pageUrl, onLog) {
         } catch (e) {
           log(`Aviso: no se pudo preparar LayerSlider: ${e.message}`);
         }
->>>>>>> 127069db377c0b66916fba3188d45060eef2f870
       }
       const fixedCount = await fixJsComputedFullWidthElements(page, viewportWidth);
       if (fixedCount > 0) log(`Corregidos ${fixedCount} elemento(s) con ancho fijo calculado por JS`);
@@ -183,15 +172,12 @@ async function extractSinglePageInline(pageUrl, onLog) {
     const html = await page.content();
     const $ = cheerio.load(html);
 
-<<<<<<< HEAD
-=======
     // Datos de LayerSlider desde el HTML crudo del servidor (fondo + título de cada slide).
     let layerSliderData = null;
     if (rawDocumentHtml) {
       try { layerSliderData = extractLayerSliderFromServerHtml(cheerio.load(rawDocumentHtml)); } catch { /* se ignora */ }
     }
 
->>>>>>> 127069db377c0b66916fba3188d45060eef2f870
     for (const el of $('link[rel="stylesheet"]').toArray()) {
       const href = $(el).attr('href');
       if (!href) continue;
@@ -277,11 +263,9 @@ async function extractSinglePageInline(pageUrl, onLog) {
         if (fixed) log(`Corregidas secciones "stretched" de Elementor.`);
       }
     }
-<<<<<<< HEAD
-    const rebuiltCarousels = rebuildKnownCarousels($, log, pageUrl);
-=======
+    
     const rebuiltCarousels = rebuildKnownCarousels($, log, pageUrl, layerSliderData);
->>>>>>> 127069db377c0b66916fba3188d45060eef2f870
+    
     if (rebuiltCarousels > 0) {
       $('head').append(`<style>${SIMPLE_CAROUSEL_CSS}</style>`);
       $('body').append(`<script>${SIMPLE_CAROUSEL_JS}</script>`);
