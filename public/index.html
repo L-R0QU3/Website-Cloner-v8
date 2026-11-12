@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Website Cloner</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>🕸️ Website Cloner</h1>
+    <p class="subtitle">Descarga el HTML, CSS, JS e imágenes de un sitio y visualiza su estructura.</p>
+
+    <div class="disclaimer">
+      ⚠️ Úsalo solo en sitios propios o con permiso del titular. Respeta derechos de autor y los términos de uso de cada sitio.
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="site">Sitio completo</button>
+      <button class="tab-btn" data-tab="single">Una sola página (archivo único)</button>
+    </div>
+
+    <section id="tab-single" class="tab-panel hidden">
+      <h2>Extraer una página completa en un solo archivo</h2>
+      <p class="subtitle">Pega la URL de una página y descarga un único <code>.html</code> con el CSS, JS e imágenes ya incrustados adentro. Ábrelo con doble clic, sin carpetas ni ZIP.</p>
+      <label>URL de la página</label>
+      <input type="url" id="singleUrl" placeholder="https://ejemplo.com/mi-pagina" />
+      <p class="detect-note">🔎 Detecta automáticamente WordPress, Elementor, Divi, Slider Revolution, Swiper y otros carruseles — no necesitas indicar nada.</p>
+      <button type="button" id="singleExtractBtn">Extraer y descargar</button>
+      <div id="singleStatus" class="muted-status hidden"></div>
+    </section>
+
+    <section id="tab-site" class="tab-panel">
+      <form id="cloneForm">
+        <label>URL del sitio a clonar</label>
+        <input type="url" id="url" placeholder="https://ejemplo.com" required />
+
+        <div class="row">
+          <div>
+            <label>Máx. páginas</label>
+            <input type="number" id="maxPages" value="10" min="1" max="200" />
+          </div>
+          <div>
+            <label>Profundidad de enlaces</label>
+            <input type="number" id="maxDepth" value="1" min="0" max="5" />
+          </div>
+        </div>
+
+        <div class="row checkboxes">
+          <label class="check"><input type="checkbox" id="captureScreenshots" checked /> Capturar screenshots</label>
+          <label class="check"><input type="checkbox" id="respectRobots" checked /> Respetar robots.txt</label>
+        </div>
+
+        <p class="detect-note">🔎 Detecta automáticamente WordPress, Elementor, Divi, Slider Revolution, Swiper y otros carruseles en cada página — no necesitas indicar nada.</p>
+
+        <button type="submit" id="startBtn">Iniciar clonado</button>
+      </form>
+
+      <div id="progressSection" class="hidden">
+        <h2>Progreso</h2>
+        <div id="statusBadge" class="badge">idle</div>
+        <div id="log" class="log"></div>
+        <a id="downloadLink" class="hidden" href="#">⬇️ Descargar ZIP del sitio</a>
+        <a id="reportLink" class="hidden" href="#" target="_blank">📄 Ver documentación (HTML)</a>
+        <a id="pdfLink" class="hidden" href="#">📕 Descargar documentación en PDF</a>
+        <a id="docxLink" class="hidden" href="#">📝 Descargar documentación en Word</a>
+      </div>
+
+      <div id="treeSection" class="hidden">
+        <h2>Estructura del sitio</h2>
+        <div id="tree" class="tree"></div>
+      </div>
+
+      <div id="aiPromptSection" class="hidden">
+        <h2>🤖 Generar prompt de IA para tu nuevo sitio</h2>
+        <p class="subtitle">Describe el contenido que quieres en tu sitio. Se combinará con el estilo y la estructura detectados para armar un prompt listo para usar en cualquier IA.</p>
+        <textarea id="userContent" rows="6" placeholder="Ej: Es una página para mi taller de reparación de bicicletas. Necesito una sección de servicios (mantención, cambio de frenos, ajuste de cambios), una galería de fotos del taller, horarios de atención y un formulario de contacto..."></textarea>
+        <button type="button" id="generatePromptBtn">Generar prompt</button>
+        <div id="promptResult" class="hidden">
+          <textarea id="promptOutput" rows="14" readonly></textarea>
+          <button type="button" id="copyPromptBtn">Copiar prompt</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

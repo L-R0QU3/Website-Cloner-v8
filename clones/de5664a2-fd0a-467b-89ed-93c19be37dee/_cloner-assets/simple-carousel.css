@@ -1,0 +1,10 @@
+.wc-simple-carousel{position:relative;overflow:hidden}
+.wc-simple-carousel .wc-track{display:flex;transition:transform .4s ease}
+.wc-simple-carousel .wc-slide{flex:0 0 100%;max-width:100%;box-sizing:border-box}
+.wc-simple-carousel .wc-arrow{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.5);color:#fff;border:none;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:16px;z-index:2;line-height:1}
+.wc-simple-carousel .wc-prev{left:10px}
+.wc-simple-carousel .wc-next{right:10px}
+.wc-simple-carousel .wc-dots{display:flex;justify-content:center;gap:6px;margin-top:10px}
+.wc-simple-carousel .wc-dot{width:8px;height:8px;border-radius:50%;background:#ccc;border:none;cursor:pointer;padding:0}
+.wc-simple-carousel .wc-dot.active{background:#333}
+.wc-simple-carousel .wc-caption{position:absolute;left:0;right:0;bottom:0;padding:16px;background:linear-gradient(transparent,rgba(0,0,0,.6));color:#fff}
