@@ -155,9 +155,16 @@ app.post('/api/single-page', async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------
+// ENDPOINT DE HEALTH CHECK PARA RENDER
+// ---------------------------------------------------------
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
 const PORT = process.env.PORT || 3000;
 
-// SE HA CAMBIADO 'localhost' POR '0.0.0.0' AQUÍ PARA QUE RENDER PUEDA ACCEDER
+// Escuchar en 0.0.0.0 para que Render pueda enrutar el tráfico
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Website Cloner corriendo en http://0.0.0.0:${PORT}`);
 });
