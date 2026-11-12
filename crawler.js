@@ -61,7 +61,13 @@ async function detectPageTech(page) {
     const isWpBakery = has('vc_row') || has('wpb_wrapper') || has('js-composer');
 
     const hasSliderRevolution = has('rev_slider') || has('tp-banner') || has('rs-module-cover')
+<<<<<<< HEAD
       || !!w.revapi || !!w.RevSlider || genLower.includes('slider revolution');
+=======
+      || has('rs-module') || !!w.revapi || !!w.RevSlider || !!w.SR7 || genLower.includes('slider revolution');
+    const hasLayerSlider = has('ls-wp-container') || has('ls-container') || has('ls-slide')
+      || !!w._layerSliders || !!w._initLayerSlider || !!w.layerSlider || genLower.includes('layerslider');
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
     const hasSwiper = has('swiper-container') || has('class="swiper') || has(' swiper ') || !!w.Swiper;
     const hasOwlCarousel = has('owl-carousel') || !!(w.jQuery && w.jQuery.fn && w.jQuery.fn.owlCarousel);
     const hasSlick = has('slick-slider') || !!(w.jQuery && w.jQuery.fn && w.jQuery.fn.slick);
@@ -69,6 +75,10 @@ async function detectPageTech(page) {
 
     const sliders = [];
     if (hasSliderRevolution) sliders.push('Slider Revolution');
+<<<<<<< HEAD
+=======
+    if (hasLayerSlider) sliders.push('LayerSlider');
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
     if (hasSwiper) sliders.push('Swiper');
     if (hasOwlCarousel) sliders.push('Owl Carousel');
     if (hasSlick) sliders.push('Slick');
@@ -84,6 +94,11 @@ async function detectPageTech(page) {
       isElementor,
       pageBuilder,
       sliders,
+<<<<<<< HEAD
+=======
+      hasSliderRevolution,
+      hasLayerSlider,
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
       needsExtendedFixes: isWordPress || !!pageBuilder || sliders.length > 0,
     };
   });
@@ -147,6 +162,105 @@ async function clickThroughCarousels(page) {
   });
 }
 
+<<<<<<< HEAD
+=======
+// LayerSlider (v6/v7/v8) usa "performance mode": no renderiza todos los slides de entrada.
+// Al recorrer su navegación (puntos/flechas) se fuerza a que renderice TODOS los slides y, con
+// ello, que escriba la URL real en cada <img class="ls-bg"> y el contenido de cada capa de texto.
+// Así el HTML capturado ya trae todo lo necesario para que rebuildKnownCarousels reconstruya el
+// hero con el motor propio, sin depender de que el script original vuelva a inicializarse.
+async function prepareLayerSlider(page) {
+  return page.evaluate(async () => {
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    let navClicks = 0;
+    let fixedImages = 0;
+
+    const sliders = window._layerSliders || {};
+    // LayerSlider en modo fullscreen deja un contenedor huérfano con la clase "ls-hidden" al
+    // nivel de <body> (copia del servidor) y crea OTRO contenedor ya inicializado en su lugar.
+    // Solo se trabaja con el contenedor "real" (sin ls-hidden); el huérfano se elimina después
+    // en rebuildKnownCarousels.
+    const roots = Array.from(document.querySelectorAll('.ls-wp-container, .ls-container'))
+      .filter((c) => {
+        let p = c.parentElement;
+        while (p) {
+          if (p.matches('.ls-wp-container, .ls-container')) return false;
+          p = p.parentElement;
+        }
+        return true;
+      })
+      .filter((c) => !c.classList.contains('ls-hidden'));
+
+    // 1) Espera (hasta ~6s) a que LayerSlider termine de inicializarse: quita la clase
+    // "ls-hidden" y reemplaza los <div class="ls-slide"> del servidor por su estructura de
+    // runtime (.ls-slide-backgrounds > [data-slide-index]).
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const allReady = roots.every((c) => !c.classList.contains('ls-hidden'));
+      if (!roots.length || allReady) break;
+      await sleep(300);
+    }
+
+    // 2) Recorre la navegación para forzar el render de TODOS los slides (fondos + capas).
+    const navs = Array.from(document.querySelectorAll(
+      '.ls-bottom-nav-wrapper a, .ls-bottom-slidebuttons a, .ls-nav-prev, .ls-nav-next, .ls-nav-sel, .ls-gui-element'
+    ));
+    const seen = new Set();
+    for (const nav of navs) {
+      if (seen.has(nav)) continue;
+      seen.add(nav);
+      try { nav.click(); } catch { /* se ignora */ }
+      navClicks += 1;
+      await sleep(250);
+    }
+    await sleep(400);
+
+    // 3) Red de seguridad: escribe la URL real (de la config de LayerSlider) en el
+    // <img class="ls-bg"> de cada slide, tanto en estructura de runtime como de servidor,
+    // por orden. Así el rebuild en cheerio siempre tiene la URL de fondo disponible.
+    const sliderConfigs = Object.keys(sliders)
+      .map((uid) => {
+        const slidesObj = (sliders[uid] && sliders[uid].slides) || {};
+        return Object.keys(slidesObj)
+          .filter((k) => /^\d+$/.test(k))
+          .sort((a, b) => Number(a) - Number(b))
+          .map((k) => slidesObj[k]);
+      })
+      .filter((list) => list.length > 0);
+
+    roots.forEach((container, ci) => {
+      const cfg = sliderConfigs[ci];
+      if (!cfg) return;
+      let slideRoots = Array.from(container.querySelectorAll('.ls-slide-backgrounds > [data-slide-index]'));
+      if (!slideRoots.length) {
+        slideRoots = Array.from(container.children).filter((c) => c.classList && c.classList.contains('ls-slide'));
+      }
+      if (!slideRoots.length) slideRoots = Array.from(container.querySelectorAll('.ls-slide'));
+      slideRoots.forEach((root, i) => {
+        const data = cfg[i] && cfg[i].data;
+        const url = data && (data.thumbnail || data.backgroundimage);
+        if (typeof url !== 'string' || !/^https?:/i.test(url)) return;
+        let img = root.querySelector('img.ls-bg, .ls-bg');
+        if (!img) {
+          img = document.createElement('img');
+          img.className = 'ls-bg';
+          img.setAttribute('alt', '');
+          root.insertBefore(img, root.firstChild);
+        }
+        if (img.tagName === 'IMG') {
+          img.setAttribute('src', url);
+          img.removeAttribute('srcset');
+        } else {
+          img.style.backgroundImage = `url('${url}')`;
+        }
+        fixedImages += 1;
+      });
+    });
+
+    return { navClicks, fixedImages };
+  });
+}
+
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
 // Trata cualquier atributo típico de lazy-loading (data-src, data-lazy-src, etc.) como si
 // fuera la imagen real, sea que pertenezca a un carrusel Swiper o a cualquier otro plugin
 // de carga diferida que nunca llegó a dispararse durante la captura.
@@ -222,6 +336,7 @@ function buildSimpleCarouselHtml(innerHtmlArray) {
   return `<div class="wc-simple-carousel"><div class="wc-track">${slidesHtml}</div><button class="wc-arrow wc-prev" aria-label="Anterior">&#10094;</button><button class="wc-arrow wc-next" aria-label="Siguiente">&#10095;</button><div class="wc-dots">${dotsHtml}</div></div>`;
 }
 
+<<<<<<< HEAD
 // Extrae la URL de fondo de un slide de Slider Revolution probando los lugares donde suele
 // guardarla (atributo, estilo inline, o una <img> interna), y un texto de título si hay alguno.
 function extractRevSlideContent($, slideEl) {
@@ -236,13 +351,89 @@ function extractRevSlideContent($, slideEl) {
     const img = $slide.find('img').first();
     bg = img.attr('src') || img.attr('data-src') || img.attr('data-lazyload') || '';
   }
+=======
+// Escapa el texto de un título/caption para que no rompa el HTML reconstruido.
+function escapeCaption(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// Saca la URL de fondo de un elemento probando los lugares donde cada librería de slider
+// suele guardarla: atributos data-*, estilo inline (background-image) o una <img> interna.
+function elementBgUrl($, $el) {
+  const direct = $el.attr('data-thumb') || $el.attr('data-bgimage') || $el.attr('data-bg')
+    || $el.attr('data-background-image') || $el.attr('data-src') || $el.attr('data-lazyload')
+    || $el.attr('data-original') || '';
+  if (direct && !direct.startsWith('data:')) return direct;
+
+  const style = $el.attr('style') || '';
+  const m = style.match(/url\(\s*(['"]?)([^'")]+)\1\s*\)/i);
+  if (m && !m[2].startsWith('data:')) return m[2];
+
+  const img = $el.find('img, .tp-bgimg, .rs-bg, .ls-bg').first();
+  const imgSrc = img.attr('src') || img.attr('data-src') || img.attr('data-lazyload') || img.attr('data-original') || '';
+  if (imgSrc && !imgSrc.startsWith('data:')) return imgSrc;
+
+  const imgStyle = img.attr('style') || '';
+  const imgM = imgStyle.match(/url\(\s*(['"]?)([^'")]+)\1\s*\)/i);
+  if (imgM && !imgM[2].startsWith('data:')) return imgM[2];
+
+  return '';
+}
+
+// Extrae la URL de fondo de un slide de Slider Revolution y un texto de título si hay alguno.
+function extractRevSlideContent($, slideEl) {
+  const $slide = $(slideEl);
+  const bg = elementBgUrl($, $slide);
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
   const captionText = $slide.find('h1, h2, h3, p').filter((_, el) => $(el).text().trim().length > 0).first().text().trim();
   return { bg, captionText };
 }
 
+<<<<<<< HEAD
 function rebuildKnownCarousels($, logFn, pageUrl) {
   let rebuilt = 0;
 
+=======
+// Extrae el contenido de un slide de LayerSlider (.ls-slide): imagen de fondo y título.
+function extractLayerSlideContent($, slideEl) {
+  const $slide = $(slideEl);
+  const bg = elementBgUrl($, $slide);
+  const captionText = $slide.find('h1, h2, h3').filter((_, el) => $(el).text().trim().length > 0).first().text().trim()
+    || $slide.find('.ls-text-layer, .ls-layer').filter((_, el) => $(el).text().trim().length > 0).first().text().trim();
+  return { bg, captionText };
+}
+
+// A partir del HTML CRUDO del servidor (sin ejecutar JS), extrae el contenido de cada slider de
+// LayerSlider. El HTML crudo es la fuente más confiable: trae el <img class="ls-bg"> con la URL
+// real y las capas de texto (<h1>/<p>) de CADA slide, mientras que el JS de LayerSlider los quita
+// o los difiere (performanceMode) durante su inicialización en el navegador.
+function extractLayerSliderFromServerHtml($) {
+  const sliders = [];
+  $('.ls-wp-container, .ls-container').toArray().forEach((el) => {
+    const $el = $(el);
+    if ($el.parents('.ls-wp-container, .ls-container').length) return;
+    const slides = $el.children('.ls-slide').toArray().map((s) => extractLayerSlideContent($, s));
+    if (slides.length >= 2) sliders.push(slides);
+  });
+  return sliders;
+}
+
+function rebuildKnownCarousels($, logFn, pageUrl, layerSliderData) {
+  let rebuilt = 0;
+
+  const logDiag = (lib, $el, slideCount) => {
+    if (slideCount !== 0) return;
+    const snippet = ($el.html() || '').replace(/\s+/g, ' ').slice(0, 700);
+    logFn(`Diagnóstico ${lib}: contenedor encontrado en ${pageUrl} pero 0 slides reconocidos. Fragmento: ${snippet}`);
+  };
+
+  const buildSlide = ({ bg, captionText }) => {
+    const bgStyle = bg ? `background-image:url('${bg}');background-size:cover;background-position:center;min-height:320px;` : 'min-height:320px;background:#111;';
+    const caption = captionText ? `<div class="wc-caption"><h3>${escapeCaption(captionText)}</h3></div>` : '';
+    return `<div style="${bgStyle}position:relative;">${caption}</div>`;
+  };
+
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
   // Swiper (incluye los carruseles de Elementor)
   $('.swiper, .swiper-container').toArray().forEach((el) => {
     const $el = $(el);
@@ -275,6 +466,7 @@ function rebuildKnownCarousels($, logFn, pageUrl) {
     rebuilt += 1;
   });
 
+<<<<<<< HEAD
   // Slider Revolution — estructura mucho más compleja (capas con animaciones propias);
   // reconstrucción best-effort: se rescata la imagen de fondo y un texto de título por slide.
   $('.rev_slider, .tp-banner').toArray().forEach((el) => {
@@ -288,14 +480,131 @@ function rebuildKnownCarousels($, logFn, pageUrl) {
       return `<div style="${bgStyle}position:relative;">${caption}</div>`;
     });
     const container = $el.parent().is('.rev_slider_wrapper, .tp-banner-container') ? $el.parent() : $el;
+=======
+  // Slider Revolution — estructura muy compleja y que cambia bastante entre versiones
+  // (6.x reescribe su propio DOM al inicializarse). Se prueban varios selectores de slides,
+  // de versiones antiguas (<ul><li>, .tp-revslider-slidesli) y nuevas (rs-module, .rs-slides).
+  $('.rev_slider, .tp-banner, rs-module, .rs-module').toArray().forEach((el) => {
+    const $el = $(el);
+    const rawSlides = $el.find('> ul > li, .tp-revslider-slidesli, .tp-revslider-mainul > li, .rs-slides > .rs-slide, rs-slide, .rs-slide').toArray();
+    const seen = new Set();
+    const slideEls = rawSlides.filter((s) => {
+      if (seen.has(s)) return false;
+      seen.add(s);
+      return true;
+    });
+    if (slideEls.length < 2) { logDiag('Slider Revolution', $el, slideEls.length); return; }
+    const inner = slideEls.map((s) => buildSlide(extractRevSlideContent($, s)));
+    const container = $el.parent().is('.rev_slider_wrapper, .tp-banner-container, rs-module-wrap') ? $el.parent() : $el;
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
     container.replaceWith(buildSimpleCarouselHtml(inner));
     rebuilt += 1;
   });
 
+<<<<<<< HEAD
+=======
+  // LayerSlider (v6/v7/v8) — el hero de muchos temas (p. ej. cmsmasters). Importante: cuando
+  // LayerSlider se inicializa REWRITE su DOM: el <div class="ls-slide"> del servidor pasa a ser
+  // .ls-slide-backgrounds > [data-slide-index] (fondo) y capas de texto con el mismo data-slide-index.
+  // Además, en modo fullscreen deja un contenedor huérfano con la clase "ls-hidden" al nivel de
+  // <body> y crea OTRO contenedor inicializado en su lugar; ese huérfano hay que eliminarlo para
+  // que el hero no quede duplicado ni descolocado respecto del <header>.
+  const lsRoots = $('.ls-wp-container, .ls-container').toArray()
+    .filter((el) => !$(el).parents('.ls-wp-container, .ls-container').length);
+
+  const initializedRoots = lsRoots.filter((el) => !$(el).hasClass('ls-hidden'));
+  const hiddenRoots = lsRoots.filter((el) => $(el).hasClass('ls-hidden'));
+  const rebuildTargets = initializedRoots.length ? initializedRoots : hiddenRoots;
+
+  // Elimina los huérfanos (copia del servidor movida por LayerSlider) que no se van a reconstruir.
+  hiddenRoots.forEach((el) => {
+    if (!rebuildTargets.includes(el)) $(el).remove();
+  });
+
+  rebuildTargets.forEach((el) => {
+    const $el = $(el);
+    let slides = null;
+
+    // 1) Fuente autoritativa: HTML crudo del servidor (fondo + título de cada slide completos).
+    if (Array.isArray(layerSliderData) && layerSliderData.length) {
+      slides = layerSliderData.shift();
+    }
+
+    // 2) Si no hay HTML crudo, se usa la estructura de RUNTIME (.ls-slide-backgrounds > [data-slide-index]).
+    if (!slides) {
+      const bgWrappers = $el.find('.ls-slide-backgrounds > [data-slide-index]').toArray();
+      if (bgWrappers.length >= 2) {
+        const byIndex = new Map();
+        bgWrappers.forEach((w) => {
+          const idx = $(w).attr('data-slide-index');
+          const img = $(w).find('img.ls-bg, .ls-bg').first();
+          const bg = img.attr('src') || img.attr('data-src') || img.attr('data-lazyload') || '';
+          byIndex.set(idx, { bg: bg && !bg.startsWith('data:') ? bg : '' });
+        });
+        $el.find('[data-slide-index]').each((_, w) => {
+          const idx = $(w).attr('data-slide-index');
+          if (!byIndex.has(idx)) return;
+          const t = $(w).find('h1, h2, h3').filter((_, e) => $(e).text().trim().length > 0).first().text().trim();
+          if (t) byIndex.get(idx).captionText = t;
+        });
+        slides = [...byIndex.entries()]
+          .sort((a, b) => Number(a[0]) - Number(b[0]))
+          .map(([, v]) => v);
+      }
+    }
+
+    // 3) Respaldo: estructura del servidor aún sin inicializar (<div class="ls-slide"> directo).
+    if (!slides) {
+      slides = $el.children('.ls-slide').toArray().map((s) => extractLayerSlideContent($, s));
+    }
+
+    if (!slides || slides.length < 2) { logDiag('LayerSlider', $el, slides ? slides.length : 0); return; }
+    const inner = slides.map((s) => buildSlide(s));
+    $el.replaceWith(buildSimpleCarouselHtml(inner));
+    rebuilt += 1;
+  });
+
+  // Respaldo heurístico: carruseles a medida sin librería reconocida. Busca un contenedor con
+  // clase que sugiera slider/carrusel y con >= 2 hijos directos que contengan imagen o fondo.
+  rebuilt += rebuildHeuristicCarousels($, logFn, pageUrl);
+
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
   if (rebuilt > 0) logFn(`Reconstruidos ${rebuilt} carrusel(es) con un motor propio simple (en vez de clonar el original) en ${pageUrl}`);
   return rebuilt;
 }
 
+<<<<<<< HEAD
+=======
+// Respaldo genérico para carruseles que no son Swiper/Owl/Slick/Slider Revolution/LayerSlider.
+function rebuildHeuristicCarousels($, logFn, pageUrl) {
+  let count = 0;
+  const candidates = $('[class*="slider"], [class*="carousel"], [class*="slideshow"], [class*="rev_slider"], [class*="revslider"]').toArray();
+
+  for (const el of candidates) {
+    const $el = $(el);
+    // No toca nuestro propio motor ni carruseles ya reconstruidos.
+    if ($el.is('[class*="wc-"]') || $el.closest('[class*="wc-"]').length || $el.find('.wc-simple-carousel').length) continue;
+
+    const children = $el.children().filter((_, c) => {
+      const $c = $(c);
+      return $c.find('img').length > 0 || /background-image|url\(/i.test($c.attr('style') || '') || $c.find('[style*="url("]').length > 0;
+    }).toArray();
+
+    // Necesita al menos 2 "slides" reales y que la mayoría de los hijos sean imágenes (evita
+    // secciones genéricas que solo tengan la palabra "slider" en una clase).
+    if (children.length < 2) continue;
+    if (children.length < $el.children().length / 2) continue;
+
+    const inner = children.map((c) => $(c).html() || '').get();
+    $el.replaceWith(buildSimpleCarouselHtml(inner));
+    count += 1;
+  }
+
+  if (count > 0) logFn(`Reconstruidos ${count} carrusel(es) heurístico(s) sin librería conocida en ${pageUrl}`);
+  return count;
+}
+
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
 // Busca URLs de imágenes/fuentes/video escondidas en cualquier parte del HTML final
 // (atributos data-* con JSON, configuración inline de scripts, etc.) que las etiquetas
 // normales no capturan. Muy común en WordPress/Elementor: los carruseles y fondos guardan
@@ -537,12 +846,28 @@ async function processPage(browser, pageUrl, outDir, job, assetMap, rootHost, op
   const pendingSaves = [];
   const capturedByNetwork = new Set();
   const CAPTURABLE_TYPES = ['image', 'stylesheet', 'script', 'font', 'media'];
+<<<<<<< HEAD
+=======
+  let rawDocumentHtml = null;
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
 
   page.on('response', (response) => {
     const request = response.request();
     const resourceType = request.resourceType();
     const respUrl = response.url().split('#')[0];
 
+<<<<<<< HEAD
+=======
+    // Guarda el HTML crudo del documento (sin JS) para extraer el contenido real de los sliders
+    // de LayerSlider, que su JS elimina/difiere al inicializarse.
+    if (resourceType === 'document' && rawDocumentHtml === null && response.status() >= 200 && response.status() < 300) {
+      pendingSaves.push((async () => {
+        try { rawDocumentHtml = (await response.buffer()).toString('utf8'); } catch { /* se ignora */ }
+      })());
+      return;
+    }
+
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
     if (!CAPTURABLE_TYPES.includes(resourceType)) return;
     if (respUrl.startsWith('data:') || capturedByNetwork.has(respUrl)) return;
     if (response.status() >= 300) return; // evita guardar redirects/errores
@@ -609,6 +934,19 @@ async function processPage(browser, pageUrl, outDir, job, assetMap, rootHost, op
         } catch (e) {
           log(job, `Aviso: no se pudo recorrer carruseles genéricos en ${pageUrl}: ${e.message}`);
         }
+<<<<<<< HEAD
+=======
+        try {
+          const ls = await prepareLayerSlider(page);
+          if (ls.navClicks > 0 || ls.fixedImages > 0) {
+            log(job, `LayerSlider preparado en ${pageUrl}: ${ls.fixedImages} imagen(es) de fondo restauradas, ${ls.navClicks} clic(s) de navegación`);
+            await sleep(400);
+            await page.evaluate(() => window.scrollTo(0, 0));
+          }
+        } catch (e) {
+          log(job, `Aviso: no se pudo preparar LayerSlider en ${pageUrl}: ${e.message}`);
+        }
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
       }
       // Corrección de anchos fijos calculados por JS: siempre se intenta, cueste lo que
       // cueste detectar (es barata y no depende de ninguna tecnología en particular).
@@ -806,9 +1144,27 @@ async function processPage(browser, pageUrl, outDir, job, assetMap, rootHost, op
   const title = $('title').first().text().trim();
   const headings = $('h1, h2').slice(0, 6).map((_, el) => $(el).text().trim()).get().filter(Boolean);
 
+<<<<<<< HEAD
   // Reconstruye carruseles conocidos (Swiper/Owl/Slick/Slider Revolution) con un motor propio
   // simple, en vez de depender de que el script original se re-inicialice bien al reabrir.
   const rebuiltCarousels = rebuildKnownCarousels($, (msg) => log(job, msg), pageUrl);
+=======
+  // Datos de los sliders de LayerSlider extraídos del HTML CRUDO del servidor (sin JS). El JS
+  // de LayerSlider elimina las capas de texto durante su inicialización, así que el HTML crudo
+  // es la fuente más confiable del fondo + título de cada slide.
+  let layerSliderData = null;
+  if (rawDocumentHtml) {
+    try {
+      layerSliderData = extractLayerSliderFromServerHtml(cheerio.load(rawDocumentHtml));
+    } catch (e) {
+      log(job, `Aviso: no se pudo extraer el contenido de LayerSlider del HTML crudo en ${pageUrl}: ${e.message}`);
+    }
+  }
+
+  // Reconstruye carruseles conocidos (Swiper/Owl/Slick/Slider Revolution/LayerSlider) con un motor
+  // propio simple, en vez de depender de que el script original se re-inicialice bien al reabrir.
+  const rebuiltCarousels = rebuildKnownCarousels($, (msg) => log(job, msg), pageUrl, layerSliderData);
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
   if (rebuiltCarousels > 0) {
     const cssRel = relativePathBetween(pageLocalPath, path.join(outDir, '_cloner-assets', 'simple-carousel.css'));
     const jsRel = relativePathBetween(pageLocalPath, path.join(outDir, '_cloner-assets', 'simple-carousel.js'));
@@ -985,4 +1341,8 @@ function buildTree(nodes, rootUrl) {
   return build(rootUrl, new Set());
 }
 
+<<<<<<< HEAD
 module.exports = { createJob, crawlSite, log, autoScroll, fixElementorStretchedSections, fixJsComputedFullWidthElements, triggerCarousels, clickThroughCarousels, resetCarouselWidgets, detectPageTech, rebuildKnownCarousels, SIMPLE_CAROUSEL_CSS, SIMPLE_CAROUSEL_JS };
+=======
+module.exports = { createJob, crawlSite, log, autoScroll, fixElementorStretchedSections, fixJsComputedFullWidthElements, triggerCarousels, clickThroughCarousels, prepareLayerSlider, resetCarouselWidgets, detectPageTech, rebuildKnownCarousels, extractLayerSliderFromServerHtml, SIMPLE_CAROUSEL_CSS, SIMPLE_CAROUSEL_JS };
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870

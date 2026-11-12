@@ -75,7 +75,11 @@ páginas enlazadas, usa la otra pestaña.
    sitio. En cada página, detecta por sí sola (revisando el HTML, las variables globales
    de JavaScript y la etiqueta `<meta name="generator">` ya renderizados en el navegador):
    - CMS/page builder: WordPress, Elementor, Divi, WPBakery.
+<<<<<<< HEAD
    - Librerías de carrusel/slider: Swiper, Slider Revolution, Owl Carousel, Slick, Flickity.
+=======
+   - Librerías de carrusel/slider: Swiper, Slider Revolution, LayerSlider, Owl Carousel, Slick, Flickity.
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
 
    Según lo que detecte, aplica automáticamente lo que haga falta:
    - Más tiempo de espera para que los widgets terminen de inicializarse.
@@ -85,6 +89,7 @@ páginas enlazadas, usa la otra pestaña.
    - Corrige anchos fijos en píxeles que algún script calculó según el tamaño de ventana
      usado para la captura (típico de secciones "stretched" de Elementor y de headers
      "full width" de otros temas).
+<<<<<<< HEAD
    - **Reconstruye los carruseles conocidos (Swiper, Owl Carousel, Slick, Slider Revolution)
      con un motor de carrusel propio, simple y dependiente solo de nuestro código** — en vez
      de intentar clonar el comportamiento exacto de la librería original (que se re-inicializa
@@ -92,6 +97,16 @@ páginas enlazadas, usa la otra pestaña.
      la app extrae las imágenes y el contenido real de cada slide y arma un carrusel nuevo,
      minimalista, con sus propios botones de siguiente/anterior y puntos de navegación. Mismo
      contenido visual, cero dependencia del script original.
+=======
+   - **Reconstruye los carruseles conocidos (Swiper, Owl Carousel, Slick, Slider Revolution,
+     LayerSlider) con un motor de carrusel propio, simple y dependiente solo de nuestro código** —
+     en vez de intentar clonar el comportamiento exacto de la librería original (que se re-inicializa
+     de forma distinta según el plugin y es prácticamente imposible de garantizar al 100%),
+     la app extrae las imágenes y el contenido real de cada slide y arma un carrusel nuevo,
+     minimalista, con sus propios botones de siguiente/anterior y puntos de navegación. Mismo
+     contenido visual, cero dependencia del script original. Además hay un respaldo heurístico
+     para carruseles a medida sin librería reconocida.
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
    - Escanea todo el HTML final en busca de URLs de imagen/fuente/video escondidas en JSON
      de atributos `data-settings` o en scripts inline (típico de Elementor), y las descarga
      y reescribe también aunque no estén en una etiqueta reconocida.
@@ -114,12 +129,23 @@ páginas enlazadas, usa la otra pestaña.
   pueden no capturarse.
 - El modo "página única" no sigue enlaces a otras páginas; solo incrusta lo que carga
   esa página concreta.
+<<<<<<< HEAD
 - La reconstrucción de carruseles reconoce Swiper, Owl Carousel, Slick y Slider Revolution.
   Slider Revolution en particular tiene una estructura muy compleja (capas con animaciones,
   efectos Ken Burns, etc.) — la reconstrucción rescata la imagen de fondo y un título por
   slide, pero no replica animaciones ni capas adicionales. Un carrusel hecho a medida por un
   tema, que no use ninguna de estas cuatro librerías, no se reconstruye (queda como estaba,
   con las correcciones generales de ancho/clics aplicadas igual).
+=======
+- La reconstrucción de carruseles reconoce Swiper, Owl Carousel, Slick, Slider Revolution y
+  LayerSlider. Slider Revolution y LayerSlider tienen estructuras muy complejas (capas con
+  animaciones, efectos Ken Burns, etc.) — la reconstrucción rescata la imagen de fondo y un
+  título por slide, pero no replica animaciones ni capas adicionales. LayerSlider se lee además
+  desde el HTML crudo del servidor, porque su JavaScript elimina las capas de texto durante la
+  inicialización. Si un carrusel no usa ninguna librería conocida, se intenta un respaldo
+  heurístico genérico (contenedor con clase de slider/carrusel y varios hijos con imágenes); si
+  tampoco aplica, queda como estaba, con las correcciones generales de ancho/clics igual.
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
 
 ## Estructura del proyecto
 

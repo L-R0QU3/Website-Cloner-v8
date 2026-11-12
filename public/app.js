@@ -139,6 +139,7 @@ function resetButton() {
 function poll(jobId) {
   clearInterval(pollTimer);
   pollTimer = setInterval(async () => {
+<<<<<<< HEAD
     try {
       const res = await fetch(`/api/status/${jobId}`);
       const data = await res.json();
@@ -194,6 +195,42 @@ function poll(jobId) {
       clearInterval(pollTimer);
       statusBadge.textContent = 'error';
       logDiv.textContent += `\n⚠️ Error de conexión con el servidor: ${err.message}`;
+=======
+    const res = await fetch(`/api/status/${jobId}`);
+    const data = await res.json();
+
+    statusBadge.textContent = data.status;
+    logDiv.textContent = data.log.join('\n');
+    logDiv.scrollTop = logDiv.scrollHeight;
+
+    if (data.status === 'done') {
+      clearInterval(pollTimer);
+      downloadLink.href = `/api/download/${jobId}`;
+      downloadLink.classList.remove('hidden');
+
+      if (data.reportReady) {
+        reportLink.href = `/api/report/${jobId}`;
+        reportLink.classList.remove('hidden');
+      }
+      if (data.pdfReady) {
+        pdfLink.href = `/api/report/${jobId}/pdf`;
+        pdfLink.classList.remove('hidden');
+      }
+      if (data.docxReady) {
+        docxLink.href = `/api/report/${jobId}/docx`;
+        docxLink.classList.remove('hidden');
+      }
+      if (data.aiPromptReady) {
+        aiPromptSection.classList.remove('hidden');
+      }
+
+      resetButton();
+      if (data.tree) renderTree(data.tree);
+    }
+
+    if (data.status === 'error') {
+      clearInterval(pollTimer);
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
       resetButton();
     }
   }, 1200);
@@ -268,4 +305,24 @@ function buildNodeEl(node) {
   const wrapper = document.createElement('ul');
   wrapper.appendChild(li);
   return wrapper;
+<<<<<<< HEAD
 }
+=======
+}
+
+// ---------- Spotlight (mouse-tracking) ----------
+// Aplica un resplandor radial que sigue al cursor sobre las tarjetas con la clase
+// .card-spotlight. La posición se escribe en variables CSS (--mx/--my) que el ::before usa.
+function initSpotlight() {
+  const cards = document.querySelectorAll('.card-spotlight');
+  cards.forEach((card) => {
+    card.addEventListener('mousemove', (e) => {
+      const rect = card.getBoundingClientRect();
+      card.style.setProperty('--mx', `${e.clientX - rect.left}px`);
+      card.style.setProperty('--my', `${e.clientY - rect.top}px`);
+    });
+  });
+}
+
+initSpotlight();
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870

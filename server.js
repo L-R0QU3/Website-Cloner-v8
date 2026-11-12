@@ -7,19 +7,51 @@ const { createJob, crawlSite, log } = require('./crawler');
 const { buildAiPrompt } = require('./report');
 const { extractSinglePageInline } = require('./singlepage');
 
+<<<<<<< HEAD
 const app = express();
+=======
+// --- PASO 2a: Importar las reglas de seguridad ---
+const { basicAuth, assertPublicUrl } = require('./security');
+
+const app = express();
+
+// --- PASO 2b: Configurar el health check y la contraseña ---
+// Health check para Render (debe ir ANTES de la contraseña)
+app.get('/healthz', (req, res) => res.send('ok'));
+
+// Pide usuario y contraseña a toda la app
+app.use(basicAuth);
+// -----------------------------------------------------------
+
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 const jobs = new Map();
 
+<<<<<<< HEAD
 app.post('/api/clone', (req, res) => {
+=======
+// --- PASO 2c: Convertir a async y agregar validación de URL pública ---
+app.post('/api/clone', async (req, res) => {
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
   const { url, maxPages, maxDepth, captureScreenshots, respectRobots, politeDelayMs } = req.body;
 
   if (!url || !/^https?:\/\//i.test(url)) {
     return res.status(400).json({ error: 'Debes indicar una URL válida que empiece con http:// o https://' });
   }
 
+<<<<<<< HEAD
+=======
+  // --- Validación anti-hackers ---
+  try {
+    await assertPublicUrl(url);
+  } catch (e) {
+    return res.status(400).json({ error: e.message });
+  }
+  // -------------------------------
+
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
   const jobId = uuidv4();
   const job = createJob();
   job.id = jobId;
@@ -65,6 +97,7 @@ app.post('/api/clone', (req, res) => {
 
 app.get('/api/status/:jobId', (req, res) => {
   const job = jobs.get(req.params.jobId);
+<<<<<<< HEAD
   
   // Si el servidor se reinició (Render Sleep), la tarea se pierde.
   // Devolvemos un JSON válido en lugar de un 404 para que el frontend no se rompa.
@@ -79,6 +112,13 @@ app.get('/api/status/:jobId', (req, res) => {
   res.json({
     status: job.status,
     log: job.log || [],
+=======
+  if (!job) return res.status(404).json({ error: 'Job no encontrado' });
+
+  res.json({
+    status: job.status,
+    log: job.log,
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
     doneCount: job.doneCount,
     queuedCount: job.queuedCount,
     tree: job.tree,
@@ -148,6 +188,18 @@ app.post('/api/single-page', async (req, res) => {
   if (!url || !/^https?:\/\//i.test(url)) {
     return res.status(400).json({ error: 'Debes indicar una URL válida que empiece con http:// o https://' });
   }
+<<<<<<< HEAD
+=======
+
+  // --- PASO 2c: Validación anti-hackers también aquí ---
+  try {
+    await assertPublicUrl(url);
+  } catch (e) {
+    return res.status(400).json({ error: e.message });
+  }
+  // ------------------------------------------------------
+
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
   try {
     const html = await extractSinglePageInline(url);
     res.setHeader('Content-Disposition', 'attachment; filename="pagina-completa.html"');

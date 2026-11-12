@@ -1,9 +1,14 @@
 <!DOCTYPE html>
+<<<<<<< HEAD
 <html lang="es">
+=======
+<html lang="es" class="dark">
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Website Cloner</title>
+<<<<<<< HEAD
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -83,6 +88,181 @@
       </div>
     </section>
   </div>
+=======
+<meta name="description" content="Herramienta local para descargar HTML, CSS, JS e imágenes de un sitio, reconstruir carruseles y generar documentación en HTML, Markdown, PDF y Word." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%235E6AD2'/%3E%3Cg stroke='%23ffffff' stroke-width='1.6' fill='none'%3E%3Ccircle cx='16' cy='16' r='3.5'/%3E%3Ccircle cx='16' cy='16' r='7'/%3E%3Ccircle cx='16' cy='16' r='10.5'/%3E%3Cpath d='M16 5v22M5 16h22M8.2 8.2l15.6 15.6M23.8 8.2L8.2 23.8'/%3E%3C/g%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body class="min-h-screen bg-[#050506] text-white antialiased">
+
+  <!-- Capas de fondo -->
+  <div class="bg-scene" aria-hidden="true">
+    <div class="bg-radial"></div>
+    <div class="bg-noise"></div>
+    <div class="bg-grid"></div>
+    <div class="blob blob--1"></div>
+    <div class="blob blob--2"></div>
+    <div class="blob blob--3"></div>
+  </div>
+
+  <!-- Header -->
+  <header class="sticky top-0 z-40 border-b border-white/[0.06] bg-[#050506]/70 backdrop-blur-xl">
+    <div class="mx-auto flex h-16 max-w-3xl items-center justify-between px-6">
+      <div class="flex items-center gap-3">
+        <svg class="h-8 w-8 rounded-lg" viewBox="0 0 32 32" aria-hidden="true">
+          <defs>
+            <linearGradient id="mark" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#5E6AD2" />
+              <stop offset="1" stop-color="#7C89E8" />
+            </linearGradient>
+          </defs>
+          <rect width="32" height="32" rx="9" fill="url(#mark)" />
+          <g stroke="#fff" stroke-width="1.5" fill="none">
+            <circle cx="16" cy="16" r="3.5" />
+            <circle cx="16" cy="16" r="7" />
+            <circle cx="16" cy="16" r="10.5" />
+            <path d="M16 5v22M5 16h22M8.2 8.2l15.6 15.6M23.8 8.2L8.2 23.8" />
+          </g>
+        </svg>
+        <div class="leading-tight">
+          <div class="text-sm font-semibold tracking-tight">Website Cloner</div>
+          <div class="text-xs text-white/40">Local site archiver</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-white/60">
+        <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+        Listo
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-3xl px-6 pb-24 pt-16">
+    <!-- Hero -->
+    <section class="mb-12 text-center">
+      <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3.5 py-1.5 text-xs font-medium text-white/55">
+        <span class="h-1.5 w-1.5 rounded-full bg-[#5E6AD2]"></span>
+        Node.js · Express · Puppeteer
+      </div>
+      <h1 class="mx-auto max-w-3xl text-5xl font-bold leading-[1.05] tracking-tight sm:text-6xl bg-gradient-to-b from-white via-white/95 to-white/70 bg-clip-text text-transparent">
+        Clona y documenta cualquier sitio web
+      </h1>
+      <p class="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-white/50 sm:text-lg">
+        Descarga HTML, CSS, JS, imágenes y fuentes; reconstruye carruseles; y genera documentación en HTML, Markdown, PDF y Word, todo en local.
+      </p>
+    </section>
+
+    <!-- Disclaimer -->
+    <div class="mb-8 flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3 text-sm leading-relaxed text-amber-200/90">
+      <span aria-hidden="true">⚠️</span>
+      <span>Úsalo solo en sitios propios o con permiso del titular. Respeta los derechos de autor y los términos de uso de cada sitio.</span>
+    </div>
+
+    <!-- Tabs -->
+    <div class="mb-6 flex justify-center">
+      <nav class="tabs" role="tablist" aria-label="Modo de clonado">
+        <button class="tab-btn active" data-tab="site" role="tab" aria-selected="true">
+          <span aria-hidden="true">🗂️</span> Sitio completo
+        </button>
+        <button class="tab-btn" data-tab="single" role="tab" aria-selected="false">
+          <span aria-hidden="true">📄</span> Página única
+        </button>
+      </nav>
+    </div>
+
+    <!-- Panel: sitio completo -->
+    <section id="tab-site" class="tab-panel">
+      <div class="card-spotlight mb-5 rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.08] to-white/[0.02] p-6 sm:p-8">
+        <div class="mb-6">
+          <h2 class="text-lg font-semibold tracking-tight">Clonar un sitio completo</h2>
+          <p class="mt-1.5 text-sm leading-relaxed text-white/50">El rastreador sigue los enlaces internos, descarga todos los recursos y genera un ZIP navegable más documentación.</p>
+        </div>
+        <form id="cloneForm" class="space-y-5">
+          <div>
+            <label for="url" class="mb-1.5 block text-xs font-medium text-white/50">URL del sitio a clonar</label>
+            <input type="url" id="url" class="input" placeholder="https://ejemplo.com" required autocomplete="url" />
+          </div>
+          <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div>
+              <label for="maxPages" class="mb-1.5 block text-xs font-medium text-white/50">Máx. páginas</label>
+              <input type="number" id="maxPages" class="input" value="10" min="1" max="200" />
+            </div>
+            <div>
+              <label for="maxDepth" class="mb-1.5 block text-xs font-medium text-white/50">Profundidad de enlaces</label>
+              <input type="number" id="maxDepth" class="input" value="1" min="0" max="5" />
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-x-6 gap-y-3">
+            <label class="check"><input type="checkbox" id="captureScreenshots" checked /> Capturar screenshots</label>
+            <label class="check"><input type="checkbox" id="respectRobots" checked /> Respetar robots.txt</label>
+          </div>
+          <div class="rounded-xl border border-[#5E6AD2]/20 bg-[#5E6AD2]/[0.06] px-4 py-3 text-[13px] leading-relaxed text-indigo-100/80">
+            🔎 Detecta automáticamente WordPress, Elementor, Divi, LayerSlider, Slider Revolution, Swiper y otros carruseles — no necesitas indicar nada.
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" id="startBtn">Iniciar clonado</button>
+        </form>
+      </div>
+
+      <div id="progressSection" class="card-spotlight mb-5 hidden rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.08] to-white/[0.02] p-6 sm:p-8">
+        <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <h2 class="text-lg font-semibold tracking-tight">Progreso</h2>
+          <div id="statusBadge" class="badge">idle</div>
+        </div>
+        <div id="log" class="log" aria-live="polite"></div>
+        <div class="mt-5 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap">
+          <a id="downloadLink" class="btn btn-primary hidden" href="#">⬇️ Descargar ZIP del sitio</a>
+          <a id="reportLink" class="btn btn-ghost hidden" href="#" target="_blank" rel="noopener">📄 Ver documentación (HTML)</a>
+          <a id="pdfLink" class="btn btn-ghost hidden" href="#">📕 PDF</a>
+          <a id="docxLink" class="btn btn-ghost hidden" href="#">📝 Word</a>
+        </div>
+      </div>
+
+      <div id="treeSection" class="card-spotlight mb-5 hidden rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.08] to-white/[0.02] p-6 sm:p-8">
+        <h2 class="mb-4 text-lg font-semibold tracking-tight">Estructura del sitio</h2>
+        <div id="tree" class="tree"></div>
+      </div>
+
+      <div id="aiPromptSection" class="card-spotlight mb-5 hidden rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.08] to-white/[0.02] p-6 sm:p-8">
+        <div class="mb-5">
+          <h2 class="text-lg font-semibold tracking-tight">🤖 Generar prompt de IA para tu nuevo sitio</h2>
+          <p class="mt-1.5 text-sm leading-relaxed text-white/50">Describe el contenido que quieres en tu sitio. Se combinará con el estilo, la paleta y la estructura detectados.</p>
+        </div>
+        <textarea id="userContent" class="input" rows="6" placeholder="Ej: Es una página para mi taller de reparación de bicicletas. Necesito una sección de servicios, una galería, horarios y un formulario de contacto…"></textarea>
+        <button type="button" class="btn btn-primary mt-5" id="generatePromptBtn">Generar prompt</button>
+        <div id="promptResult" class="mt-5 hidden">
+          <textarea id="promptOutput" class="input font-mono text-xs" rows="14" readonly></textarea>
+          <button type="button" class="btn btn-ghost mt-3" id="copyPromptBtn">Copiar prompt</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Panel: página única -->
+    <section id="tab-single" class="tab-panel hidden">
+      <div class="card-spotlight rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.08] to-white/[0.02] p-6 sm:p-8">
+        <div class="mb-6">
+          <h2 class="text-lg font-semibold tracking-tight">Extraer una página en un solo archivo</h2>
+          <p class="mt-1.5 text-sm leading-relaxed text-white/50">Pega la URL y descarga un único <code class="rounded bg-white/[0.06] px-1.5 py-0.5 font-mono text-[12px] text-indigo-100/80">.html</code> con CSS, JS e imágenes incrustados. Ábrelo con doble clic, sin carpetas ni ZIP.</p>
+        </div>
+        <div class="mb-4">
+          <label for="singleUrl" class="mb-1.5 block text-xs font-medium text-white/50">URL de la página</label>
+          <input type="url" id="singleUrl" class="input" placeholder="https://ejemplo.com/mi-pagina" autocomplete="url" />
+        </div>
+        <div class="mb-5 rounded-xl border border-[#5E6AD2]/20 bg-[#5E6AD2]/[0.06] px-4 py-3 text-[13px] leading-relaxed text-indigo-100/80">
+          🔎 Detecta automáticamente WordPress, Elementor, Divi, LayerSlider, Slider Revolution, Swiper y otros carruseles — no necesitas indicar nada.
+        </div>
+        <button type="button" class="btn btn-primary btn-block" id="singleExtractBtn">Extraer y descargar</button>
+        <div id="singleStatus" class="muted-status hidden"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t border-white/[0.06] py-8 text-center text-xs text-white/30">
+    Website Cloner · Uso responsable, solo con permiso del titular del sitio.
+  </footer>
+>>>>>>> 127069db377c0b66916fba3188d45060eef2f870
 
   <script src="app.js"></script>
 </body>
