@@ -7,12 +7,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ENV PUPPETEER_SKIP_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
-    NODE_ENV=production
+    NODE_ENV=production \
+    PORT=10000
 
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev || npm install --omit=dev
 COPY . .
 
-EXPOSE 3000
+# Render usa el puerto 10000 por defecto para servicios web
+EXPOSE 10000
+
 CMD ["node", "server.js"]
