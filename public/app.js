@@ -141,13 +141,27 @@ function poll(jobId) {
   pollTimer = setInterval(async () => {
     try {
       const res = await fetch(`/api/status/${jobId}`);
-      const data = await res.json();
+      
+      // Leemos como texto primero para evitar el error de JSON.parse si Render devuelve HTML (Error 502/503)
+      const text = await res.text();
+      let data;
+      
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        // Si falla el parseo, significa que el servidor devolvió algo que no es JSON
+        clearInterval(pollTimer);
+        statusBadge.textContent = 'error';
+        logDiv.textContent += `\n⚠️ Error Crítico (${res.status}): El servidor dejó de responder. Esto suele pasar porque Render se quedó sin memoria RAM (Puppeteer consume mucha). Intenta clonar menos páginas a la vez o una web más ligera.`;
+        logDiv.scrollTop = logDiv.scrollHeight;
+        resetButton();
+        return;
+      }
 
-      // Validar si la respuesta HTTP no fue exitosa (ej. el servidor se reinició)
       if (!res.ok) {
         clearInterval(pollTimer);
         statusBadge.textContent = 'error';
-        logDiv.textContent += `\n⚠️ Error del servidor: ${data.error || 'La tarea se perdió porque el servidor se reinició.'}`;
+        logDiv.textContent += `\n⚠️ Error del servidor (${res.status}): ${data.error || 'La tarea se perdió.'}`;
         logDiv.scrollTop = logDiv.scrollHeight;
         resetButton();
         return;
@@ -155,7 +169,6 @@ function poll(jobId) {
 
       statusBadge.textContent = data.status;
       
-      // Verificación defensiva para evitar el TypeError
       if (data.log && Array.isArray(data.log)) {
         logDiv.textContent = data.log.join('\n');
         logDiv.scrollTop = logDiv.scrollHeight;
@@ -193,7 +206,7 @@ function poll(jobId) {
     } catch (err) {
       clearInterval(pollTimer);
       statusBadge.textContent = 'error';
-      logDiv.textContent += `\n⚠️ Error de conexión con el servidor: ${err.message}`;
+      logDiv.textContent += `\n⚠️ Error de conexión: ${err.message}`;
       resetButton();
     }
   }, 1200);

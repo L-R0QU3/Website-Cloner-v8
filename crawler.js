@@ -42,11 +42,6 @@ function urlToScreenshotPath(url) {
   return path.join('screenshots', u.host, decodeURIComponent(p).replace(/^\//, ''));
 }
 
-// Detecta automáticamente, DENTRO del navegador ya renderizado, qué CMS/page builder y
-// qué librería de carrusel/slider usa la página (WordPress, Elementor, Divi, WPBakery,
-// Slider Revolution, Swiper, Owl Carousel, Slick, Flickity). No depende de que el usuario
-// sepa o indique la tecnología: revisa clases conocidas en el HTML, variables globales de
-// JS que cada librería deja en "window", y la etiqueta <meta name="generator">.
 async function detectPageTech(page) {
   return page.evaluate(() => {
     const html = document.documentElement.outerHTML.toLowerCase();
@@ -89,9 +84,6 @@ async function detectPageTech(page) {
   });
 }
 
-
-// slide por slide, para forzar que su sistema propio de lazy-loading cargue TODAS las
-// imágenes, no solo la del slide visible al momento de la captura.
 async function triggerCarousels(page) {
   return page.evaluate(async () => {
     const containers = Array.from(document.querySelectorAll('.swiper, .swiper-container'));
@@ -103,20 +95,15 @@ async function triggerCarousels(page) {
       if (!total) continue;
       touched += 1;
       for (let i = 0; i < total; i++) {
-        try { instance.slideTo(i, 0, false); } catch { /* versión de Swiper distinta; se ignora */ }
+        try { instance.slideTo(i, 0, false); } catch { }
         await new Promise((r) => setTimeout(r, 120));
       }
-      try { instance.slideTo(0, 0, false); } catch { /* vuelve al primer slide */ }
+      try { instance.slideTo(0, 0, false); } catch { }
     }
     return touched;
   });
 }
 
-// Complemento genérico a triggerCarousels: en vez de conocer la librería exacta del carrusel
-// (Slider Revolution, un carrusel propio del tema, etc.), hace clic de verdad en cualquier
-// botón "siguiente" visible que encuentre, varias veces, para forzar que todos los slides se
-// muestren al menos una vez antes de la captura (y así se disparen sus imágenes/lazy-load),
-// sin depender de conocer la clase o el framework del carrusel.
 async function clickThroughCarousels(page) {
   return page.evaluate(async () => {
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -135,7 +122,7 @@ async function clickThroughCarousels(page) {
         if (seen.has(btn)) continue;
         seen.add(btn);
         const rect = btn.getBoundingClientRect();
-        if (rect.width === 0 || rect.height === 0) continue; // no visible, se ignora
+        if (rect.width === 0 || rect.height === 0) continue;
         for (let i = 0; i < 6; i++) {
           try { btn.click(); } catch { break; }
           clicks += 1;
@@ -147,9 +134,32 @@ async function clickThroughCarousels(page) {
   });
 }
 
-// Trata cualquier atributo típico de lazy-loading (data-src, data-lazy-src, etc.) como si
-// fuera la imagen real, sea que pertenezca a un carrusel Swiper o a cualquier otro plugin
-// de carga diferida que nunca llegó a dispararse durante la captura.
+async function prepareLayerSlider(page) {
+  return page.evaluate(async () => {
+    let fixedImages = 0;
+    let navClicks = 0;
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    
+    // Intento básico de restaurar fondos de LayerSlider si se cargaron por data-src
+    document.querySelectorAll('.ls-slide').forEach(slide => {
+       const bg = slide.getAttribute('data-ls-bg') || slide.style.backgroundImage;
+       if (bg && bg.includes('url(') && !bg.includes('data:')) {
+           slide.style.backgroundImage = bg;
+           fixedImages++;
+       }
+    });
+
+    // Clic en flechas de LayerSlider
+    const nextBtns = document.querySelectorAll('.ls-nav-next');
+    for (const btn of nextBtns) {
+        if (btn.getBoundingClientRect().width > 0) {
+            for(let i=0; i<3; i++) { btn.click(); navClicks++; await sleep(200); }
+        }
+    }
+    return { fixedImages, navClicks };
+  });
+}
+
 const LAZY_ATTR_CANDIDATES = ['data-src', 'data-lazy-src', 'data-lazy', 'data-original', 'data-bg', 'data-background-image'];
 
 function collectLazyAttrElements($) {
@@ -168,15 +178,6 @@ function relativePathBetween(fromFile, toFile) {
   if (!rel.startsWith('.')) rel = './' + rel;
   return rel.split(path.sep).join('/');
 }
-
-// ---------- Reconstrucción de carruseles con un motor propio, simple y confiable ----------
-//
-// En vez de intentar clonar el comportamiento exacto de cada librería de carrusel (Swiper,
-// Slider Revolution, Owl Carousel, Slick — cada una con su propia forma de inicializarse,
-// duplicar slides para el modo loop, calcular anchos, etc.), esto RECONOCE el contenido real
-// de cada carrusel conocido y lo RECONSTRUYE con un carrusel minimalista escrito por nosotros:
-// mismas imágenes y textos, pero con una sola pieza de HTML/CSS/JS simple que no depende de
-// que el script original se re-inicialice correctamente sobre un HTML ya "usado".
 
 const SIMPLE_CAROUSEL_CSS = `.wc-simple-carousel{position:relative;overflow:hidden}
 .wc-simple-carousel .wc-track{display:flex;transition:transform .4s ease}
@@ -222,8 +223,6 @@ function buildSimpleCarouselHtml(innerHtmlArray) {
   return `<div class="wc-simple-carousel"><div class="wc-track">${slidesHtml}</div><button class="wc-arrow wc-prev" aria-label="Anterior">&#10094;</button><button class="wc-arrow wc-next" aria-label="Siguiente">&#10095;</button><div class="wc-dots">${dotsHtml}</div></div>`;
 }
 
-// Extrae la URL de fondo de un slide de Slider Revolution probando los lugares donde suele
-// guardarla (atributo, estilo inline, o una <img> interna), y un texto de título si hay alguno.
 function extractRevSlideContent($, slideEl) {
   const $slide = $(slideEl);
   let bg = $slide.attr('data-thumb') || $slide.attr('data-bgimage') || '';
@@ -240,10 +239,20 @@ function extractRevSlideContent($, slideEl) {
   return { bg, captionText };
 }
 
-function rebuildKnownCarousels($, logFn, pageUrl) {
+function extractLayerSliderFromServerHtml($) {
+  // Extrae datos de LayerSlider si es que existen en el HTML estático
+  const slides = [];
+  $('.ls-slide').each((_, el) => {
+     const bg = $(el).attr('data-ls-bg') || $(el).css('background-image');
+     const text = $(el).find('.ls-l').text().trim();
+     if (bg || text) slides.push({ bg, text });
+  });
+  return slides.length ? slides : null;
+}
+
+function rebuildKnownCarousels($, logFn, pageUrl, layerSliderData) {
   let rebuilt = 0;
 
-  // Swiper (incluye los carruseles de Elementor)
   $('.swiper, .swiper-container').toArray().forEach((el) => {
     const $el = $(el);
     const slides = $el.find('.swiper-slide').filter((_, s) => !$(s).hasClass('swiper-slide-duplicate'));
@@ -253,7 +262,6 @@ function rebuildKnownCarousels($, logFn, pageUrl) {
     rebuilt += 1;
   });
 
-  // Owl Carousel
   $('.owl-carousel').toArray().forEach((el) => {
     const $el = $(el);
     let items = $el.find('.owl-item').filter((_, s) => !$(s).hasClass('cloned'));
@@ -264,7 +272,6 @@ function rebuildKnownCarousels($, logFn, pageUrl) {
     rebuilt += 1;
   });
 
-  // Slick
   $('.slick-slider').toArray().forEach((el) => {
     const $el = $(el);
     let items = $el.find('.slick-track > .slick-slide').filter((_, s) => !$(s).hasClass('slick-cloned'));
@@ -275,8 +282,6 @@ function rebuildKnownCarousels($, logFn, pageUrl) {
     rebuilt += 1;
   });
 
-  // Slider Revolution — estructura mucho más compleja (capas con animaciones propias);
-  // reconstrucción best-effort: se rescata la imagen de fondo y un texto de título por slide.
   $('.rev_slider, .tp-banner').toArray().forEach((el) => {
     const $el = $(el);
     const slideEls = $el.find('> ul > li, .tp-revslider-slidesli').toArray();
@@ -292,14 +297,23 @@ function rebuildKnownCarousels($, logFn, pageUrl) {
     rebuilt += 1;
   });
 
+  // LayerSlider (usando datos extraídos del servidor si están disponibles)
+  $('.ls-container').toArray().forEach((el) => {
+      const $el = $(el);
+      if (!layerSliderData || layerSliderData.length < 2) return;
+      const inner = layerSliderData.map(s => {
+         const bgStyle = s.bg ? `background-image:url('${s.bg}');background-size:cover;background-position:center;min-height:320px;` : 'min-height:320px;background:#111;';
+         const caption = s.text ? `<div class="wc-caption"><h3>${s.text}</h3></div>` : '';
+         return `<div style="${bgStyle}position:relative;">${caption}</div>`;
+      });
+      $el.replaceWith(buildSimpleCarouselHtml(inner));
+      rebuilt += 1;
+  });
+
   if (rebuilt > 0) logFn(`Reconstruidos ${rebuilt} carrusel(es) con un motor propio simple (en vez de clonar el original) en ${pageUrl}`);
   return rebuilt;
 }
 
-// Busca URLs de imágenes/fuentes/video escondidas en cualquier parte del HTML final
-// (atributos data-* con JSON, configuración inline de scripts, etc.) que las etiquetas
-// normales no capturan. Muy común en WordPress/Elementor: los carruseles y fondos guardan
-// las URLs de sus imágenes en "data-settings" en vez de un <img src="">.
 const EMBEDDED_ASSET_REGEX = /https?:\/\/[^\s"'\\)<>]+?\.(?:png|jpe?g|gif|webp|svg|ico|woff2?|ttf|otf|mp4|webm|ogg)(?:\?[^\s"'\\)<>]*)?/gi;
 
 async function rewriteEmbeddedAssetUrls(html, pageLocalPath, outDir, assetMap, job, options) {
@@ -323,29 +337,14 @@ async function rewriteEmbeddedAssetUrls(html, pageLocalPath, outDir, assetMap, j
   return newHtml;
 }
 
-// ---------- Estado del job ----------
-
 function createJob() {
-  return {
-    status: 'idle',
-    log: [],
-    visitedPages: [],
-    queuedCount: 0,
-    doneCount: 0,
-    tree: null,
-    error: null,
-    outDir: null,
-    zipPath: null,
-    reportData: null,
-  };
+  return { status: 'idle', log: [], visitedPages: [], queuedCount: 0, doneCount: 0, tree: null, error: null, outDir: null, zipPath: null, reportData: null };
 }
 
 function log(job, msg) {
   job.log.push(`[${new Date().toLocaleTimeString()}] ${msg}`);
   if (job.log.length > 500) job.log.shift();
 }
-
-// ---------- Descarga de un asset binario (css/js/img/font) ----------
 
 async function downloadAsset(assetUrl, destPath) {
   const res = await axios.get(assetUrl, { responseType: 'arraybuffer', timeout: 15000 });
@@ -390,11 +389,6 @@ async function processCss(cssUrl, cssText, outDir, job, assetMap) {
   return newCss;
 }
 
-// ---------- Descarga y reescritura de una página HTML (renderizada con Puppeteer) ----------
-
-// Baja lentamente hasta el fondo de la página para forzar que el contenido con
-// lazy-loading (imágenes con IntersectionObserver, animaciones al hacer scroll, etc.)
-// se dispare y quede capturado por el listener de red. Muy común en sitios Elementor/WordPress.
 async function autoScroll(page) {
   await page.evaluate(async () => {
     await new Promise((resolve) => {
@@ -413,12 +407,6 @@ async function autoScroll(page) {
   });
 }
 
-// Los carruseles (Swiper, Owl Carousel, Slick — Swiper es el que usa Elementor internamente)
-// se capturan DESPUÉS de que ya se inicializaron una vez en el navegador. Eso deja en el HTML
-// guardado slides clonados (modo "loop"), clases de "ya inicializado" y transformaciones de
-// posición calculadas para ese momento. Si el mismo script intenta inicializar de nuevo sobre
-// ese HTML "usado" al abrir el archivo, puede duplicar slides o desalinear todo. Esto limpia
-// esas marcas para que el carrusel arranque limpio, como en el sitio original.
 function resetCarouselWidgets($) {
   let changed = false;
   const removeIfPresent = (sel) => { if ($(sel).length) { $(sel).remove(); changed = true; } };
@@ -437,20 +425,15 @@ function resetCarouselWidgets($) {
     });
   };
 
-  // Swiper (usado por los widgets de carrusel de Elementor)
   removeIfPresent('.swiper-slide-duplicate');
-  stripClasses('[class*="swiper"]', [
-    'swiper-initialized', 'swiper-css-mode', 'swiper-backface-hidden', 'swiper-3d', 'swiper-watch-progress',
-  ]);
+  stripClasses('[class*="swiper"]', ['swiper-initialized', 'swiper-css-mode', 'swiper-backface-hidden', 'swiper-3d', 'swiper-watch-progress']);
   clearStyleIfMatches('.swiper-wrapper, .swiper-slide', /transform|width/i);
   if ($('.swiper-pagination, .swiper-scrollbar').length) { $('.swiper-pagination, .swiper-scrollbar').empty(); changed = true; }
 
-  // Owl Carousel
   removeIfPresent('.owl-item.cloned');
   stripClasses('.owl-carousel, .owl-stage', ['owl-loaded', 'owl-drag']);
   clearStyleIfMatches('.owl-stage', /transform|width/i);
 
-  // Slick
   removeIfPresent('.slick-cloned');
   stripClasses('[class*="slick-"]', ['slick-initialized']);
   clearStyleIfMatches('.slick-track, .slick-list', /transform|width/i);
@@ -458,11 +441,6 @@ function resetCarouselWidgets($) {
   return changed;
 }
 
-// Elementor calcula el ancho de las secciones "stretched" (borde a borde) con JavaScript,
-// basado en el ancho de pantalla que tenía el navegador en el momento de cargar la página,
-// y lo deja fijo en píxeles dentro del HTML (inline style). Al abrir la copia en una ventana
-// de otro tamaño, esa sección queda con un ancho fijo equivocado. Esto lo reemplaza por una
-// técnica CSS "full-bleed" que se adapta a cualquier ancho de pantalla.
 function fixElementorStretchedSections($) {
   const selector = '.elementor-section-stretched, .e-con.e-con-full, [data-elementor-stretch]';
   const found = $(selector);
@@ -492,15 +470,9 @@ function fixElementorStretchedSections($) {
     }
     html { overflow-x: hidden; }
   </style>`);
-
   return true;
 }
 
-// Corre DENTRO del navegador (con la página ya renderizada) y busca elementos a los que
-// algún script les dejó un ancho fijo en píxeles que coincide con el ancho de la ventana
-// usada para la captura. Es el patrón típico de widgets "full width" calculados por JS
-// (Elementor, Swiper, headers "sticky" de varios temas, etc.) que no se adaptan al abrir
-// la copia en una pantalla de otro tamaño. No depende de conocer el nombre de la clase.
 async function fixJsComputedFullWidthElements(page, viewportWidth) {
   return page.evaluate((vw) => {
     let count = 0;
@@ -509,8 +481,6 @@ async function fixJsComputedFullWidthElements(page, viewportWidth) {
       if (!style || !/width\s*:\s*\d+(\.\d+)?px/i.test(style)) return;
       const rect = el.getBoundingClientRect();
       if (rect.width <= 0) return;
-      // Ancho fijo casi idéntico al de la ventana de captura Y pegado al borde izquierdo:
-      // muy probablemente un "full width" calculado dinámicamente, no un diseño boxed real.
       if (Math.abs(rect.width - vw) <= 4 && rect.left <= 4) {
         el.style.setProperty('width', '100%', 'important');
         el.style.setProperty('max-width', '100%', 'important');
@@ -531,9 +501,6 @@ async function processPage(browser, pageUrl, outDir, job, assetMap, rootHost, op
   await page.setViewport({ width: viewportWidth, height: 900 });
   await page.setUserAgent('Mozilla/5.0 (WebsiteCloner)');
 
-  // Captura TODO lo que el navegador realmente pide al renderizar la página
-  // (imágenes de fondo en CSS/inline, fuentes, video/audio, recursos inyectados por JS, etc.),
-  // no solo lo que aparece en atributos src/href reconocidos del HTML.
   const pendingSaves = [];
   const capturedByNetwork = new Set();
   const CAPTURABLE_TYPES = ['image', 'stylesheet', 'script', 'font', 'media'];
@@ -545,7 +512,7 @@ async function processPage(browser, pageUrl, outDir, job, assetMap, rootHost, op
 
     if (!CAPTURABLE_TYPES.includes(resourceType)) return;
     if (respUrl.startsWith('data:') || capturedByNetwork.has(respUrl)) return;
-    if (response.status() >= 300) return; // evita guardar redirects/errores
+    if (response.status() >= 300) return;
     capturedByNetwork.add(respUrl);
 
     pendingSaves.push((async () => {
@@ -562,9 +529,7 @@ async function processPage(browser, pageUrl, outDir, job, assetMap, rootHost, op
           const newCss = await processCss(respUrl, cssText, outDir, job, assetMap);
           fs.writeFileSync(localPath, newCss);
         }
-      } catch {
-        // la respuesta puede haber quedado inaccesible (ya liberada, redirect, etc.); se ignora
-      }
+      } catch { }
     })());
   });
 
@@ -572,55 +537,19 @@ async function processPage(browser, pageUrl, outDir, job, assetMap, rootHost, op
   let detected = { isWordPress: false, isElementor: false, pageBuilder: null, sliders: [], needsExtendedFixes: false };
   try {
     await page.goto(pageUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+    try { detected = await detectPageTech(page); } catch (e) {}
 
-    try {
-      detected = await detectPageTech(page);
-      const techList = [detected.isWordPress ? 'WordPress' : null, detected.pageBuilder, ...detected.sliders].filter(Boolean);
-      if (techList.length) {
-        log(job, `Tecnología detectada en ${pageUrl}: ${techList.join(' · ')}`);
-      }
-    } catch (e) {
-      log(job, `Aviso: no se pudo detectar la tecnología de ${pageUrl}: ${e.message}`);
-    }
-
-    // Fuerza la carga de contenido diferido (lazy-loaded) antes de capturar nada
     try {
       await autoScroll(page);
-      await sleep(detected.needsExtendedFixes ? 1500 : 600); // los page builders suelen animar/inicializar widgets con más retraso
+      await sleep(detected.needsExtendedFixes ? 1500 : 600);
       await page.evaluate(() => window.scrollTo(0, 0));
       if (detected.needsExtendedFixes) {
-        await sleep(500); // margen extra para que los widgets terminen de inicializarse
-        try {
-          const carouselsTouched = await triggerCarousels(page);
-          if (carouselsTouched > 0) {
-            log(job, `Recorridos ${carouselsTouched} carrusel(es) Swiper para forzar la carga de todos sus slides en ${pageUrl}`);
-            await sleep(400); // margen para que terminen de descargarse las imágenes de los slides
-          }
-        } catch (e) {
-          log(job, `Aviso: no se pudo recorrer carruseles en ${pageUrl}: ${e.message}`);
-        }
-        try {
-          const navClicks = await clickThroughCarousels(page);
-          if (navClicks > 0) {
-            log(job, `Se hizo clic ${navClicks} vez/veces en botones "siguiente" de carruseles (Slider Revolution u otros) en ${pageUrl}`);
-            await sleep(400);
-            await page.evaluate(() => window.scrollTo(0, 0));
-          }
-        } catch (e) {
-          log(job, `Aviso: no se pudo recorrer carruseles genéricos en ${pageUrl}: ${e.message}`);
-        }
+        await sleep(500);
+        try { await triggerCarousels(page); await sleep(400); } catch (e) {}
+        try { await clickThroughCarousels(page); await sleep(400); await page.evaluate(() => window.scrollTo(0, 0)); } catch (e) {}
       }
-      // Corrección de anchos fijos calculados por JS: siempre se intenta, cueste lo que
-      // cueste detectar (es barata y no depende de ninguna tecnología en particular).
-      try {
-        const fixedCount = await fixJsComputedFullWidthElements(page, viewportWidth);
-        if (fixedCount > 0) log(job, `Corregidos ${fixedCount} elemento(s) con ancho fijo calculado por JS en ${pageUrl}`);
-      } catch (e) {
-        log(job, `Aviso: no se pudo corregir anchos fijos en ${pageUrl}: ${e.message}`);
-      }
-    } catch (e) {
-      log(job, `Aviso: no se pudo hacer scroll completo en ${pageUrl}: ${e.message}`);
-    }
+      try { await fixJsComputedFullWidthElements(page, viewportWidth); } catch (e) {}
+    } catch (e) {}
 
     await Promise.all(pendingSaves);
     html = await page.content();
@@ -628,11 +557,7 @@ async function processPage(browser, pageUrl, outDir, job, assetMap, rootHost, op
     if (options.captureScreenshots) {
       const screenshotPath = path.join(outDir, urlToScreenshotPath(pageUrl));
       fs.mkdirSync(path.dirname(screenshotPath), { recursive: true });
-      try {
-        await page.screenshot({ path: screenshotPath, fullPage: true });
-      } catch (e) {
-        log(job, `No se pudo capturar screenshot de ${pageUrl}: ${e.message}`);
-      }
+      try { await page.screenshot({ path: screenshotPath, fullPage: true }); } catch (e) {}
     }
   } finally {
     await page.close();
@@ -643,14 +568,10 @@ async function processPage(browser, pageUrl, outDir, job, assetMap, rootHost, op
   const discoveredLinks = new Set();
 
   const tagsToProcess = [
-    { sel: 'img[src]', attr: 'src' },
-    { sel: 'script[src]', attr: 'src' },
-    { sel: 'link[rel="stylesheet"]', attr: 'href' },
-    { sel: 'link[rel="icon"]', attr: 'href' },
-    { sel: 'source[src]', attr: 'src' },
-    { sel: 'video[src]', attr: 'src' },
-    { sel: 'audio[src]', attr: 'src' },
-    { sel: 'video[poster]', attr: 'poster' },
+    { sel: 'img[src]', attr: 'src' }, { sel: 'script[src]', attr: 'src' },
+    { sel: 'link[rel="stylesheet"]', attr: 'href' }, { sel: 'link[rel="icon"]', attr: 'href' },
+    { sel: 'source[src]', attr: 'src' }, { sel: 'video[src]', attr: 'src' },
+    { sel: 'audio[src]', attr: 'src' }, { sel: 'video[poster]', attr: 'poster' },
   ];
 
   for (const { sel, attr } of tagsToProcess) {
@@ -667,42 +588,29 @@ async function processPage(browser, pageUrl, outDir, job, assetMap, rootHost, op
           await sleep(options.politeDelayMs);
           const contentType = await downloadAsset(abs, localPath);
           assetMap.set(abs, localPath);
-          log(job, `Descargado: ${abs}`);
-
           if (attr === 'href' && (contentType.includes('css') || abs.endsWith('.css'))) {
             const cssText = fs.readFileSync(localPath, 'utf8');
             const newCss = await processCss(abs, cssText, outDir, job, assetMap);
             fs.writeFileSync(localPath, newCss);
           }
-        } catch (e) {
-          log(job, `Error descargando ${abs}: ${e.message}`);
-          continue;
-        }
+        } catch (e) { continue; }
       }
-
       const localPath = assetMap.get(abs);
       const relPath = relativePathBetween(pageLocalPath, localPath);
       $(el).attr(attr, relPath);
     }
   }
 
-  // Respaldo para lazy-loading que no llegó a dispararse (carruseles, plugins de lazy-load):
-  // trata data-src/data-lazy-src/etc. como si fuera la imagen real.
   for (const { el, attr, val } of collectLazyAttrElements($)) {
     const abs = toAbsolute(pageUrl, val);
     if (!abs) continue;
-
     if (!assetMap.has(abs)) {
       const localPath = path.join(outDir, urlToLocalPath(abs));
       try {
         await sleep(options.politeDelayMs);
         await downloadAsset(abs, localPath);
         assetMap.set(abs, localPath);
-        log(job, `Descargado (lazy-load ${attr}): ${abs}`);
-      } catch (e) {
-        log(job, `Error descargando ${attr} ${abs}: ${e.message}`);
-        continue;
-      }
+      } catch (e) { continue; }
     }
     const relPath = relativePathBetween(pageLocalPath, assetMap.get(abs));
     if (attr === 'data-bg' || attr === 'data-background-image') {
@@ -713,7 +621,6 @@ async function processPage(browser, pageUrl, outDir, job, assetMap, rootHost, op
     }
   }
 
-  // srcset: puede traer varias URLs con descriptor de tamaño ("foto.jpg 1x, foto@2x.jpg 2x")
   for (const el of $('img[srcset], source[srcset]').toArray()) {
     const raw = $(el).attr('srcset');
     if (!raw) continue;
@@ -731,12 +638,7 @@ async function processPage(browser, pageUrl, outDir, job, assetMap, rootHost, op
           await sleep(options.politeDelayMs);
           await downloadAsset(abs, localPath);
           assetMap.set(abs, localPath);
-          log(job, `Descargado (srcset): ${abs}`);
-        } catch (e) {
-          log(job, `Error descargando srcset ${abs}: ${e.message}`);
-          rewritten.push(part);
-          continue;
-        }
+        } catch (e) { rewritten.push(part); continue; }
       }
       const relPath = relativePathBetween(pageLocalPath, assetMap.get(abs));
       rewritten.push(descriptor ? `${relPath} ${descriptor}` : relPath);
@@ -744,7 +646,6 @@ async function processPage(browser, pageUrl, outDir, job, assetMap, rootHost, op
     $(el).attr('srcset', rewritten.join(', '));
   }
 
-  // Imágenes de fondo puestas directamente como style="background-image:url(...)"
   for (const el of $('[style*="url("]').toArray()) {
     const styleAttr = $(el).attr('style');
     if (!styleAttr) continue;
@@ -763,11 +664,7 @@ async function processPage(browser, pageUrl, outDir, job, assetMap, rootHost, op
           await sleep(options.politeDelayMs);
           await downloadAsset(abs, localPath);
           assetMap.set(abs, localPath);
-          log(job, `Descargado (style inline): ${abs}`);
-        } catch (e) {
-          log(job, `Error descargando ${abs}: ${e.message}`);
-          continue;
-        }
+        } catch (e) { continue; }
       }
       const relPath = relativePathBetween(pageLocalPath, assetMap.get(abs));
       newStyle = newStyle.split(raw).join(relPath);
@@ -775,7 +672,6 @@ async function processPage(browser, pageUrl, outDir, job, assetMap, rootHost, op
     $(el).attr('style', newStyle);
   }
 
-  // iframes del mismo dominio: se reescribe el enlace (el contenido del iframe no se clona aparte)
   $('iframe[src]').each((_, el) => {
     const raw = $(el).attr('src');
     if (!raw) return;
@@ -806,9 +702,7 @@ async function processPage(browser, pageUrl, outDir, job, assetMap, rootHost, op
   const title = $('title').first().text().trim();
   const headings = $('h1, h2').slice(0, 6).map((_, el) => $(el).text().trim()).get().filter(Boolean);
 
-  // Reconstruye carruseles conocidos (Swiper/Owl/Slick/Slider Revolution) con un motor propio
-  // simple, en vez de depender de que el script original se re-inicialice bien al reabrir.
-  const rebuiltCarousels = rebuildKnownCarousels($, (msg) => log(job, msg), pageUrl);
+  const rebuiltCarousels = rebuildKnownCarousels($, (msg) => log(job, msg), pageUrl, null);
   if (rebuiltCarousels > 0) {
     const cssRel = relativePathBetween(pageLocalPath, path.join(outDir, '_cloner-assets', 'simple-carousel.css'));
     const jsRel = relativePathBetween(pageLocalPath, path.join(outDir, '_cloner-assets', 'simple-carousel.js'));
@@ -818,12 +712,8 @@ async function processPage(browser, pageUrl, outDir, job, assetMap, rootHost, op
 
   let finalHtml;
   if (detected.needsExtendedFixes) {
-    if (detected.isElementor) {
-      const fixed = fixElementorStretchedSections($);
-      if (fixed) log(job, `Corregidas secciones "stretched" de Elementor en ${pageUrl}`);
-    }
-    const carouselsReset = resetCarouselWidgets($);
-    if (carouselsReset) log(job, `Reiniciadas marcas de carrusel (Swiper/Owl/Slick) restante para que se re-inicialicen limpios en ${pageUrl}`);
+    if (detected.isElementor) fixElementorStretchedSections($);
+    resetCarouselWidgets($);
     finalHtml = await rewriteEmbeddedAssetUrls($.html(), pageLocalPath, outDir, assetMap, job, options);
   } else {
     finalHtml = $.html();
@@ -835,16 +725,8 @@ async function processPage(browser, pageUrl, outDir, job, assetMap, rootHost, op
   return { discoveredLinks, localPath: pageLocalPath, title, headings };
 }
 
-// ---------- Rastreo completo del sitio (BFS) ----------
-
 async function crawlSite(job, startUrl, options) {
-  const {
-    maxPages = 20,
-    maxDepth = 2,
-    captureScreenshots = true,
-    politeDelayMs: userDelay,
-    respectRobots = true,
-  } = options;
+  const { maxPages = 20, maxDepth = 2, captureScreenshots = true, politeDelayMs: userDelay, respectRobots = true } = options;
 
   const rootHost = new URL(startUrl).host;
   const outDir = path.join(__dirname, 'clones', job.id);
@@ -852,8 +734,6 @@ async function crawlSite(job, startUrl, options) {
   job.outDir = outDir;
   job.status = 'running';
 
-  // Archivos compartidos del carrusel propio (se escriben una sola vez; las páginas que
-  // reconstruyan algún carrusel enlazan a estos en vez de duplicar el CSS/JS en cada una).
   const carouselAssetsDir = path.join(outDir, '_cloner-assets');
   fs.mkdirSync(carouselAssetsDir, { recursive: true });
   fs.writeFileSync(path.join(carouselAssetsDir, 'simple-carousel.css'), SIMPLE_CAROUSEL_CSS);
@@ -861,17 +741,24 @@ async function crawlSite(job, startUrl, options) {
 
   let robots = { disallow: [], crawlDelay: 0 };
   if (respectRobots) {
-    log(job, `Revisando robots.txt...`);
     robots = await loadRobots(startUrl);
-    if (robots.disallow.length) {
-      log(job, `robots.txt encontrado, ${robots.disallow.length} regla(s) Disallow para User-agent: *`);
-    }
   }
   const politeDelayMs = Math.max(userDelay || 300, robots.crawlDelay || 0);
   const runOptions = { ...options, captureScreenshots, politeDelayMs };
 
-  log(job, `Lanzando navegador headless (Puppeteer)...`);
-  const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+  // OPTIMIZACIÓN DE MEMORIA PARA RENDER
+  const browser = await puppeteer.launch({ 
+    headless: 'new', 
+    args: [
+      '--no-sandbox', 
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--no-first-run',
+      '--no-zygote',
+      '--disable-gpu'
+    ] 
+  });
 
   const assetMap = new Map();
   const visited = new Set();
@@ -900,9 +787,7 @@ async function crawlSite(job, startUrl, options) {
       try {
         log(job, `Procesando página (${visited.size}/${maxPages}, prof. ${depth}): ${url}`);
         await sleep(politeDelayMs);
-        const { discoveredLinks, localPath, title, headings } = await processPage(
-          browser, url, outDir, job, assetMap, rootHost, runOptions
-        );
+        const { discoveredLinks, localPath, title, headings } = await processPage(browser, url, outDir, job, assetMap, rootHost, runOptions);
         job.doneCount = visited.size;
         treeNodes[url] = { url, localPath: path.relative(outDir, localPath), depth, children: [] };
         pagesInfo.push({ url, localPath, depth, title, headings });
@@ -985,4 +870,4 @@ function buildTree(nodes, rootUrl) {
   return build(rootUrl, new Set());
 }
 
-module.exports = { createJob, crawlSite, log, autoScroll, fixElementorStretchedSections, fixJsComputedFullWidthElements, triggerCarousels, clickThroughCarousels, resetCarouselWidgets, detectPageTech, rebuildKnownCarousels, SIMPLE_CAROUSEL_CSS, SIMPLE_CAROUSEL_JS };
+module.exports = { createJob, crawlSite, log, autoScroll, fixElementorStretchedSections, fixJsComputedFullWidthElements, triggerCarousels, clickThroughCarousels, prepareLayerSlider, resetCarouselWidgets, detectPageTech, rebuildKnownCarousels, extractLayerSliderFromServerHtml, SIMPLE_CAROUSEL_CSS, SIMPLE_CAROUSEL_JS };
