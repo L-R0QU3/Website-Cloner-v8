@@ -1,481 +1,66 @@
-<<<<<<< HEAD
-* { box-sizing: border-box; }
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: #0f172a;
-  color: #e2e8f0;
-  margin: 0;
-  padding: 40px 16px;
-}
-
-.container {
-  max-width: 720px;
-  margin: 0 auto;
-}
-
-h1 { margin-bottom: 4px; }
-.subtitle { color: #94a3b8; margin-top: 0; }
-
-.disclaimer {
-  background: #422006;
-  border: 1px solid #92400e;
-  color: #fde68a;
-  padding: 12px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  margin-bottom: 24px;
-}
-
-.tabs { display: flex; gap: 8px; margin-bottom: 20px; }
-.tab-btn {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid #334155;
-  background: #1e293b;
-  color: #94a3b8;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-}
-.tab-btn.active { background: #6366f1; color: white; border-color: #6366f1; }
-.tab-panel.hidden { display: none; }
-
-label {
-  display: block;
-  font-size: 13px;
-  color: #94a3b8;
-  margin: 12px 0 4px;
-}
-
-input {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid #334155;
-  background: #1e293b;
-  color: #e2e8f0;
-  font-size: 14px;
-}
-
-.row {
-  display: flex;
-  gap: 16px;
-}
-.row > div { flex: 1; }
-
-button {
-  margin-top: 20px;
-  width: 100%;
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  background: #6366f1;
-  color: white;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-}
-button:hover { background: #4f46e5; }
-button:disabled { background: #475569; cursor: not-allowed; }
-
+/* Estilos básicos y de estado */
 .hidden { display: none !important; }
 
-.badge {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: #334155;
-  font-size: 12px;
-  text-transform: uppercase;
-  margin-bottom: 12px;
-}
-
-.log {
-  background: #020617;
-  border: 1px solid #1e293b;
-  border-radius: 8px;
-  padding: 12px;
-  height: 220px;
-  overflow-y: auto;
-  font-family: "SF Mono", Menlo, monospace;
-  font-size: 12px;
-  color: #a5b4fc;
-  white-space: pre-wrap;
-}
-
-#downloadLink, #reportLink, #pdfLink, #docxLink {
-  display: block;
-  margin-top: 12px;
-  text-align: center;
-  color: white;
-  padding: 12px;
-  border-radius: 8px;
-  text-decoration: none;
-  font-weight: 600;
-}
-#downloadLink { background: #16a34a; }
-#reportLink { background: #2563eb; }
-#pdfLink { background: #b91c1c; }
-#docxLink { background: #1d4ed8; }
-
-.checkboxes { align-items: center; margin-top: 8px; }
-.check {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #cbd5e1;
-  margin: 0;
-}
-.check input { width: auto; }
-
-.detect-note {
-  font-size: 12.5px;
-  color: #93c5fd;
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 8px;
-  padding: 8px 12px;
-  margin-top: 12px;
-}
-
-#treeSection { margin-top: 32px; }
-.tree ul { list-style: none; padding-left: 18px; border-left: 1px dashed #334155; }
-.tree li { margin: 4px 0; font-size: 13px; }
-.tree .node-url { color: #e2e8f0; }
-.tree .node-path { color: #64748b; font-size: 11px; margin-left: 6px; }
-
-#aiPromptSection { margin-top: 32px; }
-textarea {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid #334155;
-  background: #1e293b;
-  color: #e2e8f0;
-  font-size: 13px;
-  font-family: inherit;
-  resize: vertical;
-}
-#promptResult { margin-top: 16px; }
-#promptOutput { font-family: "SF Mono", Menlo, monospace; font-size: 12px; margin-bottom: 8px; }
-#generatePromptBtn, #copyPromptBtn { width: auto; padding: 10px 18px; margin-top: 12px; }
-
-.muted-status { margin-top: 14px; font-size: 13px; color: #94a3b8; }
-.muted-status.error { color: #fca5a5; }
-.muted-status.success { color: #86efac; }
-=======
-/* ==========================================================================
-   Website Cloner — Design system "Linear-style"
-   Tailwind CDN maneja el layout/espaciado/colores utilitarios; este archivo
-   contiene el sistema de capas de fondo, blobs animados, spotlight, y los
-   componentes (botones, inputs, tabs, árbol, log) con easing expo-out.
-   ========================================================================== */
-
-:root {
-  --accent: #5E6AD2;
-  --accent-hover: #6872D9;
-  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
-}
-
-* { box-sizing: border-box; }
-
-body {
-  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-}
-
-::selection { background: rgba(94, 106, 210, 0.4); color: #fff; }
-
-.hidden { display: none !important; }
-
-/* --------------------------------------------------------------------------
-   Escena de fondo (4 capas)
-   -------------------------------------------------------------------------- */
-.bg-scene {
-  position: fixed;
-  inset: 0;
-  z-index: -10;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-/* 1) Resplandor radial desde el centro superior */
-.bg-radial {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse 62% 46% at 50% -8%, rgba(94, 106, 210, 0.16), transparent 70%);
-}
-
-/* 2) Textura de ruido sutil */
-.bg-noise {
-  position: absolute;
-  inset: 0;
-  opacity: 0.015;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 256px 256px;
-}
-
-/* 3) Rejilla de 64px */
-.bg-grid {
-  position: absolute;
-  inset: 0;
-  opacity: 0.02;
-  background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.6) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.6) 1px, transparent 1px);
-  background-size: 64px 64px;
-  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 75%);
-  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 75%);
-}
-
-/* 4) Blobs de gradiente desenfocados, animados */
-.blob {
-  position: absolute;
-  width: 900px;
-  height: 1400px;
-  border-radius: 50%;
-  filter: blur(120px);
-  opacity: 0.16;
-  will-change: transform;
-}
-.blob--1 { background: #5E6AD2; top: -620px; left: -220px; animation: blob-a 26s ease-in-out infinite; }
-.blob--2 { background: #4F46E5; top: -420px; right: -380px; opacity: 0.13; animation: blob-b 32s ease-in-out infinite; }
-.blob--3 { background: #6366F1; bottom: -720px; left: 28%; opacity: 0.12; animation: blob-c 40s ease-in-out infinite; }
-
-@keyframes blob-a {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  50% { transform: translate(150px, 110px) rotate(6deg); }
-}
-@keyframes blob-b {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  50% { transform: translate(-130px, 130px) rotate(-6deg); }
-}
-@keyframes blob-c {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  50% { transform: translate(100px, -100px) rotate(5deg); }
-}
-
-/* --------------------------------------------------------------------------
-   Spotlight (mouse-tracking en tarjetas)
-   -------------------------------------------------------------------------- */
-.card-spotlight { position: relative; }
-.card-spotlight::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.25s var(--ease-expo);
-  /* 300px de diámetro (150px de radio), acento al 15% */
-  background: radial-gradient(150px circle at var(--mx, 50%) var(--my, 50%), rgba(94, 106, 210, 0.15), transparent 70%);
-}
-.card-spotlight:hover::before { opacity: 1; }
-
-/* --------------------------------------------------------------------------
-   Tabs
-   -------------------------------------------------------------------------- */
-.tabs {
-  display: inline-flex;
-  gap: 4px;
-  padding: 4px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
-}
-.tab-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 18px;
-  border: none;
-  border-radius: 9px;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.55);
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.22s var(--ease-expo), color 0.22s var(--ease-expo), box-shadow 0.22s var(--ease-expo);
-}
-.tab-btn:hover { color: rgba(255, 255, 255, 0.85); }
 .tab-btn.active {
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  border-bottom: 2px solid #6366f1; /* indigo-500 */
+  color: #818cf8; /* indigo-400 */
 }
 
-/* --------------------------------------------------------------------------
-   Inputs
-   -------------------------------------------------------------------------- */
-.input {
-  width: 100%;
-  background: #0F0F12;
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  border-radius: 10px;
-  padding: 10px 14px;
-  color: #fff;
-  font-family: inherit;
-  font-size: 14px;
-  transition: border-color 0.2s var(--ease-expo), box-shadow 0.2s var(--ease-expo);
+/* Estado de los logs */
+.muted-status {
+  color: #94a3b8;
 }
-.input::placeholder { color: rgba(255, 255, 255, 0.32); }
-.input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(94, 106, 210, 0.22);
+.muted-status.error {
+  color: #f87171;
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
-textarea.input { resize: vertical; line-height: 1.55; }
-
-/* Checkbox personalizado (con accent-color) */
-.check {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 13.5px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.75);
-  cursor: pointer;
-}
-.check input {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--accent);
-  cursor: pointer;
-  flex: none;
+.muted-status.success {
+  color: #4ade80;
+  background-color: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.2);
 }
 
-/* --------------------------------------------------------------------------
-   Botones
-   -------------------------------------------------------------------------- */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 11px 18px;
-  border: 1px solid transparent;
-  border-radius: 11px;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1;
-  text-decoration: none;
-  cursor: pointer;
-  transition: background 0.22s var(--ease-expo), color 0.22s var(--ease-expo),
-    transform 0.22s var(--ease-expo), box-shadow 0.22s var(--ease-expo),
-    border-color 0.22s var(--ease-expo);
+/* Estructura del árbol */
+#tree ul {
+  list-style-type: none;
+  padding-left: 1.5rem;
+  border-left: 1px solid #334155;
+  margin: 0.5rem 0;
 }
-.btn-block { width: 100%; }
-
-.btn-primary {
-  background: var(--accent);
-  color: #fff;
-  /* Multi-capa de brillo de acento */
-  box-shadow: 0 0 0 1px rgba(94, 106, 210, 0.5),
-              0 4px 12px rgba(94, 106, 210, 0.3),
-              inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+#tree li {
+  position: relative;
+  padding-left: 1rem;
+  margin-bottom: 0.5rem;
 }
-.btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
-.btn-primary:active { transform: translateY(0); }
-.btn-primary:disabled {
-  background: #23232B;
-  color: rgba(255, 255, 255, 0.3);
-  box-shadow: none;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.btn-ghost {
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.85);
-  border-color: rgba(255, 255, 255, 0.08);
-}
-.btn-ghost:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.14); }
-
-/* --------------------------------------------------------------------------
-   Badge de estado
-   -------------------------------------------------------------------------- */
-.badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.55);
-  white-space: nowrap;
-}
-
-/* --------------------------------------------------------------------------
-   Log (terminal)
-   -------------------------------------------------------------------------- */
-.log {
-  background: #0A0A0D;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
-  padding: 14px 16px;
-  height: 240px;
-  overflow-y: auto;
-  font-family: var(--mono);
-  font-size: 12px;
-  line-height: 1.6;
-  color: #9BA1B0;
-  white-space: pre-wrap;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
-}
-.log::-webkit-scrollbar { width: 10px; }
-.log::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.14);
-  border-radius: 999px;
-  border: 2px solid #0A0A0D;
-}
-
-/* --------------------------------------------------------------------------
-   Árbol de páginas
-   -------------------------------------------------------------------------- */
-.tree { overflow-x: auto; padding-bottom: 4px; }
-.tree ul {
-  list-style: none;
-  margin: 0;
-  padding-left: 20px;
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
-}
-.tree > ul { padding-left: 0; border-left: none; }
-.tree li { margin: 5px 0; font-size: 13.5px; position: relative; }
-.tree li::before {
+#tree li::before {
   content: "";
   position: absolute;
-  left: -20px;
-  top: 11px;
-  width: 12px;
+  left: 0;
+  top: 0.75rem;
+  width: 0.75rem;
   height: 1px;
-  background: rgba(255, 255, 255, 0.08);
+  background-color: #334155;
 }
-.tree .node-url {
-  display: inline-block;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 3px 9px;
-  border-radius: 7px;
+.node-url {
+  color: #93c5fd; /* blue-300 */
   word-break: break-all;
 }
-.tree .node-path { color: rgba(255, 255, 255, 0.35); font-size: 11.5px; margin-left: 8px; font-family: var(--mono); }
+.node-path {
+  display: block;
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+}
 
-/* --------------------------------------------------------------------------
-   Estado de página única
-   -------------------------------------------------------------------------- */
-.muted-status { margin-top: 14px; font-size: 13.5px; color: rgba(255, 255, 255, 0.5); line-height: 1.5; }
-.muted-status.error { color: #f87171; }
-.muted-status.success { color: #34d399; }
->>>>>>> 127069db377c0b66916fba3188d45060eef2f870
+/* Efecto de carga del log */
+#log::-webkit-scrollbar {
+  width: 8px;
+}
+#log::-webkit-scrollbar-track {
+  background: transparent;
+}
+#log::-webkit-scrollbar-thumb {
+  background-color: #334155;
+  border-radius: 4px;
+}
